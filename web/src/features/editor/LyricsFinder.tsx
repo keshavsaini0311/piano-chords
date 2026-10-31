@@ -1,5 +1,6 @@
-// Search LRCLIB again with a corrected title/artist. The server only searches; found lyrics are
-// applied here as an undoable edit and saved by autosave like any other change.
+// Lyrics live with the chart, not in a side panel. With no lyrics: one button that searches with the
+// song's own title. Only if that misses do the title/artist fields appear. The server only searches;
+// found lyrics are applied as an undoable edit and saved by autosave.
 import { useState, type FormEvent } from 'react';
 import { replaceLyrics } from '../../domain/edits';
 import { api } from '../../services/api';
@@ -11,37 +12,44 @@ export function LyricsFinder() {
   const apply = useSongStore((s) => s.apply);
   const [title, setTitle] = useState(song.title);
   const [artist, setArtist] = useState(song.artist);
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<'idle' | 'searching' | 'missed' | 'failed'>('idle');
+  const [open, setOpen] = useState(false);
+  const hasLyrics = song.lyrics.length > 0;
 
-  async function search(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setStatus(null);
+  async function search(event?: FormEvent) {
+    event?.preventDefault();
+    setState('searching');
     try {
       const lyrics = await api.searchLyrics(song.id, title, artist);
-      if (lyrics.length) {
-        apply((s) => replaceLyrics(s, { title, artist, lyrics }));
-        setStatus(`Found ${lyrics.length} lines.`);
-      } else setStatus('No synced lyrics for that title and artist. Try the exact song name, or check back later.');
-    } catch (e) {
-      setStatus(`Search failed: ${(e as Error).message}`);
-    } finally {
-      setBusy(false);
+      if (!lyrics.length) return setState('missed');
+      apply((s) => replaceLyrics(s, { title, artist, lyrics }));
+      setState('idle');
+      setOpen(false);
+    } catch {
+      setState('failed');
     }
   }
 
+  if (hasLyrics && !open)
+    return (
+      <p className="lyrics-again">
+        <button className="link-button" onClick={() => setOpen(true)}>Wrong lyrics? Search again</button>
+      </p>
+    );
+
+  const showFields = open || state === 'missed' || state === 'failed';
   return (
-    <details className="panel more" open={!song.lyrics.length}>
-      <summary className="section-title">{song.lyrics.length ? `Lyrics (${song.lyrics.length} lines)` : 'Lyrics: none yet'}</summary>
-      <form className="lyrics-form" onSubmit={search}>
-        <div className="row">
+    <form className="lyrics-bar" onSubmit={search} aria-live="polite">
+      <span>
+        {state === 'missed' ? 'No lyrics found for that title. Check the song name and artist:' : state === 'failed' ? 'The lyrics service is not answering. Try again in a bit.' : hasLyrics ? 'Search with a different title:' : 'No lyrics yet.'}
+      </span>
+      {showFields && (
+        <>
           <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Song title" placeholder="Song title" />
           <input className="field" value={artist} onChange={(e) => setArtist(e.target.value)} aria-label="Artist" placeholder="Artist" />
-        </div>
-        <button className="btn" disabled={busy || !title.trim()}>{busy ? 'Searching…' : song.lyrics.length ? 'Search again' : 'Search lyrics'}</button>
-        {status && <p className="small muted" role="status">{status}</p>}
-      </form>
-    </details>
+        </>
+      )}
+      <button className="btn" disabled={state === 'searching' || !title.trim()}>{state === 'searching' ? 'Searching…' : 'Find lyrics'}</button>
+    </form>
   );
 }

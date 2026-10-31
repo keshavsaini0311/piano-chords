@@ -46,13 +46,14 @@ export function StudioScreen({ songId }: { songId: string }) {
       )}
       <div className="studio-body">
         <main className="studio-main">
+          {song.lyrics.length === 0 && <LyricsFinder />}
           <ChartPreview />
+          {song.lyrics.length > 0 && <LyricsFinder />}
         </main>
         {mode === 'edit' && (
           <aside className="studio-aside">
             <Inspector />
             <ReviewQueue />
-            <LyricsFinder />
           </aside>
         )}
       </div>

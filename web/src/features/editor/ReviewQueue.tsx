@@ -22,16 +22,14 @@ export function ReviewQueue() {
   const { label } = useDisplay();
   const ids = reviewQueue(song.chords);
   const byId = new Map(song.chords.map((c) => [c.id, c]));
+  if (!ids.length) return null; // nothing to review: say nothing
   return (
     <section className="panel" aria-label="Chords to review">
       <div className="panel-head">
         <h2 className="section-title">To review ({ids.length})</h2>
         {ids.length > 0 && <span className="muted small">J and K step through them</span>}
       </div>
-      {ids.length === 0 ? (
-        <p className="muted small">Nothing flagged. Play it through and click any chord that sounds wrong.</p>
-      ) : (
-        <ol className="queue">
+      <ol className="queue">
           {ids.map((id) => {
             const c = byId.get(id)!;
             return (
@@ -49,8 +47,7 @@ export function ReviewQueue() {
               </li>
             );
           })}
-        </ol>
-      )}
+      </ol>
     </section>
   );
 }
