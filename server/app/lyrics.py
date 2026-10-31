@@ -37,9 +37,16 @@ def clean_title(title: str) -> str:
     """YouTube titles carry noise LRCLIB can't match. ponytail: drops every bracketed part, (Remix) too."""
     title = re.sub(r"[\(\[][^\)\]]*[\)\]]", "", title)
     title = title.split("|")[0]
-    title = re.split(r"\s(?:ft\.?|feat\.?|featuring)\s", title, flags=re.IGNORECASE)[0]
+    title = re.split(r"\s(?:ft\.?|feat\.?|featuring|with|prod\.?)\s|@", title, flags=re.IGNORECASE)[0]
     title = re.sub(r"official (?:video|audio|music video)", "", title, flags=re.IGNORECASE)
     return re.sub(r"\s+", " ", title).strip(" -")
+
+
+def song_title(title: str, artist: str) -> str:
+    """The bare track name LRCLIB indexes: cleaned, and without a leading "Artist - "."""
+    cleaned = clean_title(title)
+    left, sep, right = cleaned.partition(" - ")
+    return right.strip() if sep and left.strip().lower() == artist.strip().lower() else cleaned
 
 
 class LyricsProvider(Protocol):

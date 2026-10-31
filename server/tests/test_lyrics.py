@@ -1,4 +1,4 @@
-from app.lyrics import clean_title, parse_lrc
+from app.lyrics import clean_title, parse_lrc, song_title
 
 LRC = """[00:01.00] walking down the empty road
 [00:05.50] counting every light
@@ -24,3 +24,12 @@ def test_clean_title_strips_video_noise():
     assert clean_title("AFUSIC - Pal Pal (Official Video) ft. Talwiinder") == "AFUSIC - Pal Pal"
     assert clean_title("Song Name [Lyrics] | Some Channel") == "Song Name"
     assert clean_title("Track feat. Someone (Official Audio)") == "Track"
+
+
+def test_clean_title_drops_collab_and_producer_credits():
+    assert clean_title("Afusic - Pal Pal with @Talwiinder Prod. @AliSoomroMusic") == "Afusic - Pal Pal"
+
+
+def test_song_title_removes_the_artist_prefix():
+    assert song_title("Afusic - Pal Pal with @Talwiinder Prod. @AliSoomroMusic", "AFUSIC") == "Pal Pal"
+    assert song_title("Pal Pal (Official Video)", "AFUSIC") == "Pal Pal"
