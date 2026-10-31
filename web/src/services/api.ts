@@ -52,4 +52,8 @@ export const api = {
   searchLyrics: async (id: string, title: string, artist: string) =>
     (await request<{ lyrics: LyricLine[] }>(`/api/songs/${id}/lyrics`, { method: 'POST', body: JSON.stringify({ title, artist }) })).lyrics,
   audioUrl: (id: string) => `/api/songs/${id}/audio`,
+  getSetting: async (name: string) => (await request<{ value: string | null }>(`/api/settings/${encodeURIComponent(name)}`)).value,
+  saveSetting: async (name: string, value: string) => {
+    await request(`/api/settings/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify({ value }) });
+  },
 };

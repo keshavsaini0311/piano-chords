@@ -1,4 +1,6 @@
-"""One folder per song under data/songs/<youtubeId>/: audio.*, analysis.wav, detected.json, song.json."""
+"""Everything lives in one data folder, so moving to a new laptop is copying that folder:
+  <data>/songs/<youtubeId>/  audio.*, detected.json, song.json
+  <data>/settings.json       the app's view settings (key, Simple/Full, hand position)"""
 import json
 import os
 import re
@@ -6,11 +8,14 @@ from dataclasses import asdict
 from pathlib import Path
 
 SONG_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+SETTING_NAME = re.compile(r"^[\w:.-]{1,64}$")
 
 
 class SongStore:
-    def __init__(self, root: Path):
-        self.root = root
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+        self.root = data_dir / "songs"
+        self.settings_file = data_dir / "settings.json"
 
     def song_dir(self, song_id: str) -> Path:
         if not SONG_ID.match(song_id):  # ids reach the filesystem: never let one escape root
@@ -39,6 +44,17 @@ class SongStore:
 
     def audio_path(self, song_id: str) -> Path | None:
         return next((p for p in self.song_dir(song_id).glob("audio.*")), None)
+
+    def read_setting(self, name: str) -> str | None:
+        if not SETTING_NAME.match(name) or not self.settings_file.exists():
+            return None
+        return json.loads(self.settings_file.read_text()).get(name)
+
+    def write_setting(self, name: str, value: str) -> None:
+        if not SETTING_NAME.match(name):
+            raise ValueError("Bad setting name")
+        settings = json.loads(self.settings_file.read_text()) if self.settings_file.exists() else {}
+        self._write_json(self.settings_file, {**settings, name: value})
 
     @staticmethod
     def _write_json(path: Path, data) -> None:

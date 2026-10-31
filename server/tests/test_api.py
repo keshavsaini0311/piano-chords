@@ -147,3 +147,37 @@ def test_estimate_confidence_flags_short_chords():
 def test_merge_slivers_folds_tiny_segments_into_a_neighbour():
     merged = merge_slivers([Segment(0, 0.09, "N.C."), Segment(0.09, 4, "Fm"), Segment(4, 4.05, "C"), Segment(4.05, 8, "Db")])
     assert [(s.start, s.end, s.label) for s in merged] == [(0, 4.05, "Fm"), (4.05, 8, "Db")]
+
+
+def test_settings_live_in_the_data_folder(tmp_path):
+    client = make_client(tmp_path)
+    assert client.get("/api/settings/view").json() == {"value": None}
+    assert client.put("/api/settings/view", json={"value": "{\"semitones\":4}"}).status_code == 200
+    assert client.get("/api/settings/view").json() == {"value": "{\"semitones\":4}"}
+    assert (tmp_path / "settings.json").exists()
+
+
+def test_import_deletes_the_temporary_analysis_audio(tmp_path):
+    def prepare(audio):
+        wav = audio.with_name("analysis.wav")
+        wav.write_bytes(b"pcm")
+        return wav
+
+    deps = Deps(
+        fetcher=FakeFetcher(), detector=FakeDetector(), lyrics=FakeLyrics(None),
+        beats=lambda wav: [0.0, 0.5], store=SongStore(tmp_path), prepare=prepare,
+    )
+    client = TestClient(create_app(deps))
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song_dir = tmp_path / "songs" / SONG_ID
+    assert (song_dir / "audio.m4a").exists()
+    assert not (song_dir / "analysis.wav").exists()
+
+
+def test_data_folder_can_be_moved_with_an_env_var(tmp_path, monkeypatch):
+    import importlib
+    import app.main as main
+    monkeypatch.setenv("PC_DATA_DIR", str(tmp_path / "synced"))
+    assert importlib.reload(main).DATA_DIR == tmp_path / "synced"
+    monkeypatch.delenv("PC_DATA_DIR")
+    importlib.reload(main)

@@ -1,4 +1,6 @@
-"""HTTP API for the browser. Run: uv run uvicorn app.main:app --reload"""
+"""HTTP API for the browser. Run: uv run uvicorn app.main:app --reload
+Set PC_DATA_DIR to keep all songs and settings somewhere else (e.g. an iCloud Drive folder)."""
+import os
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,7 +15,7 @@ from app.lyrics import LrclibLyrics
 from app.pipeline import Deps
 from app.store import SongStore
 
-DATA_ROOT = Path(__file__).resolve().parent.parent / "data" / "songs"
+DATA_DIR = Path(os.environ.get("PC_DATA_DIR") or Path(__file__).resolve().parent.parent / "data").expanduser()
 
 
 class ImportRequest(BaseModel):
@@ -25,9 +27,13 @@ class LyricsRequest(BaseModel):
     artist: str
 
 
+class SettingValue(BaseModel):
+    value: str
+
+
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or Deps(
-        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_ROOT)
+        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR)
     )
     store, runner = deps.store, JobRunner(deps)
     app = FastAPI(title="piano-chords")
@@ -84,6 +90,18 @@ def create_app(deps: Deps | None = None) -> FastAPI:
         song = existing_song(song_id)
         lines = deps.lyrics.find(request.title, request.artist, song["duration"]) or []
         return {"lyrics": [vars(line) for line in lines]}
+
+    @app.get("/api/settings/{name}")
+    def get_setting(name: str):
+        return {"value": store.read_setting(name)}
+
+    @app.put("/api/settings/{name}")
+    def put_setting(name: str, setting: SettingValue):
+        try:
+            store.write_setting(name, setting.value)
+        except ValueError as error:
+            raise HTTPException(400, str(error))
+        return {"ok": True}
 
     return app
 

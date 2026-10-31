@@ -4,7 +4,7 @@ A personal chord player for learning songs on a small keyboard. Paste a YouTube 
 computer downloads the audio, works out the chords and the beat, and looks for synced lyrics.
 Then you play along, transpose to an easier key, and fix any chord it got wrong.
 
-Everything runs locally. Audio and songs stay in `server/data/` (git-ignored).
+Everything runs locally. Songs, edits and settings stay in `server/data/` (git-ignored).
 
 ## Setup (once)
 
@@ -36,6 +36,32 @@ The first import of a song takes about a minute (download, then chord detection 
   edge to move the change (snaps to the beat), split, merge or remove. `J`/`K` step through chords
   the detector was unsure about. ⌘Z / ⇧⌘Z undo and redo. Edits save automatically.
 - You always edit in the key you're viewing. The song is stored in its original key.
+
+## Your data, and moving to a new laptop
+
+Everything lives in one folder, `server/data/`:
+
+```
+server/data/
+  settings.json            key per song, Simple/As detected, hand position, note names
+  songs/<youtube-id>/      audio, detected chords (untouched), your edited song.json
+```
+
+**Move to a new laptop:** do the setup above on the new laptop, then copy that folder across.
+
+```bash
+tar czf piano-chords-data.tgz -C server data         # old laptop: one file to AirDrop or copy
+tar xzf piano-chords-data.tgz -C server              # new laptop, inside the repo
+```
+
+**Or keep it in iCloud Drive** so it is always there on whichever Mac you use. Start the server with
+`PC_DATA_DIR` pointing at the synced folder (move your existing `server/data` there first):
+
+```bash
+PC_DATA_DIR=~/Library/Mobile\ Documents/com~apple~CloudDocs/piano-chords uv run uvicorn app.main:app --port 8000
+```
+
+Run the app on one Mac at a time when using a synced folder; two running at once can overwrite each other.
 
 ## Calibrate your keyboard
 

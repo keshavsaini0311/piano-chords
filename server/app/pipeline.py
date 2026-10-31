@@ -83,6 +83,8 @@ def run_pipeline(url: str, song_id: str, deps: Deps, on_stage: Callable[[str], N
     wav = deps.prepare(audio)
     segments = merge_slivers(deps.detector.detect(wav))
     beats = deps.beats(wav)
+    if wav != audio:
+        wav.unlink(missing_ok=True)  # only the models need it; keeps the data folder small to copy or sync
     deps.store.write_detected(song_id, segments)
     on_stage("lyrics")
     lines = deps.lyrics.find(meta.title, meta.artist, meta.duration) or []
