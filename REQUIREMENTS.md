@@ -39,18 +39,45 @@ Status: gathering requirements. Nothing is built yet.
 - **Free transpose to any key.** Example: Fm to Am, so every chord is on white keys.
 - **Piano notes for each chord**, drawn on a keyboard that matches the SA-51's 32-key range.
 
+## Decided (31 Oct 2026)
+
+- **Core flow:** paste a YouTube link → chords are detected automatically from the audio →
+  edit any wrong chord → play along with the chart. Transpose works throughout.
+- **UI and UX are the top priority**, above extra features.
+
+## Data sources (research, 31 Oct 2026)
+
+- Ultimate Guitar and Chordify have no public API. They are out as data sources.
+- Chords from audio: open-source models run locally. Candidates are ChordMiniApp
+  (chords + beats, Python backend), lv-chordia (file → JSON chords with timestamps),
+  and autochord (simpler, ~67% accurate).
+- Lyrics with timestamps: LRCLIB (free API, each line timestamped). Coverage of
+  Hindi/Punjabi songs is unverified.
+- Transpose and piano notes: done in code with a small music-theory library. No API needed.
+- Detection will be wrong on some chords, so editing is a must-have, not a nice-to-have.
+
+## Design patterns worth borrowing (research)
+
+- **Chord highlight in time with the audio** (Chordify, Moises): the current chord is lit
+  up, and the view follows playback.
+- **Two views of the same song:** chords over lyrics (UG) and a chord grid of
+  beats and bars (Chordify / Moises Grid Mode). Moises lets you combine the grid with lyrics.
+- **Difficulty levels** (Moises): easy / medium / advanced chord vocabulary. An easy
+  setting fits a beginner (simplify 7ths and sus chords to plain triads).
+- **Chord popover** (LeadSheet extension for UG): hover or tap a chord to see a small
+  diagram, plus a toggle that shows every chord in the song as a diagram strip.
+  Transposing updates the diagrams too.
+- **Piano chord reference** (Easy Piano Chords): a keyboard with the chord's notes
+  highlighted and labelled.
+- **Dark media bar** at the bottom with the chord timeline (Chordify's editor).
+
 ## Open questions (to settle with Keshav)
 
-1. **Where the song comes from:** a YouTube link, a local MP3, or either one.
-2. **Where the chords come from:** pasted chord-over-lyrics text (UG format), detected
-   automatically from the audio (Chordify's method, much harder), or typed in by hand.
-3. **How chords get synced to the song:** Keshav taps along once to timestamp them,
-   it scrolls at a fixed speed, or detection does it automatically.
-4. **Platform:** a local web app in the browser (my default guess), or something else.
-5. **Piano view:** chord notes only, or a suggested hand position and fingering for
+1. **Platform:** a local web app in the browser (my default guess), or something else.
+2. **Piano view:** chord notes only, or a suggested hand position and fingering for
    beginners as well.
-6. **Song library:** save multiple songs locally, or open one song at a time.
-7. **Must-have list for v1 vs. later.**
+3. **Song library:** save multiple songs locally, or open one song at a time.
+4. **Must-have list for v1 vs. later.**
 
 ## Non-goals (draft)
 
