@@ -1,0 +1,57 @@
+// Time-based lookups for playback. Components subscribe to these derived values, not raw time,
+// so they re-render once per chord or beat change instead of 60 times a second.
+import type { ChordEvent } from './song';
+
+export type Loop = { start: number; end: number };
+
+/** Index of the last item whose key is <= time, or -1. Binary search over a sorted list. */
+function lastAtOrBefore<T>(items: T[], time: number, key: (item: T) => number): number {
+  let lo = 0;
+  let hi = items.length - 1;
+  let found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (key(items[mid]) <= time) {
+      found = mid;
+      lo = mid + 1;
+    } else hi = mid - 1;
+  }
+  return found;
+}
+
+export function activeChordIndex(chords: ChordEvent[], time: number): number {
+  const i = lastAtOrBefore(chords, time, (c) => c.start);
+  return i >= 0 && time < chords[i].end ? i : -1;
+}
+
+export function beatIndex(beats: number[], time: number): number {
+  return lastAtOrBefore(beats, time, (b) => b);
+}
+
+/** Beats left before the next chord starts (the count-in), or null if no chord follows. */
+export function beatsUntilNextChord(chords: ChordEvent[], beats: number[], time: number): number | null {
+  const next = chords.find((c) => c.start > time);
+  if (!next) return null;
+  return beats.filter((b) => b > time && b <= next.start).length;
+}
+
+export function reviewQueue(chords: ChordEvent[], threshold = 0.6): string[] {
+  return chords.filter((c) => c.confidence !== undefined && c.confidence < threshold).map((c) => c.id);
+}
+
+export function loopSeekTarget(time: number, loop: Loop | null): number | null {
+  return loop && time >= loop.end ? loop.start : null;
+}
+
+/** Loudest absolute sample per bucket, scaled so the loudest bucket is 1. */
+export function computePeaks(samples: Float32Array, buckets: number): number[] {
+  const size = Math.max(1, Math.floor(samples.length / buckets));
+  const peaks: number[] = [];
+  for (let b = 0; b < buckets; b++) {
+    let max = 0;
+    for (let i = b * size; i < Math.min((b + 1) * size, samples.length); i++) max = Math.max(max, Math.abs(samples[i]));
+    peaks.push(max);
+  }
+  const top = Math.max(...peaks);
+  return top > 0 ? peaks.map((p) => p / top) : peaks;
+}
