@@ -1,7 +1,7 @@
 // The only code that talks to the server. Wire format uses label strings; the app uses Chord objects.
 // Converting here keeps every other module free of the server's shape.
 import { accidentalsForKey, estimateKey, formatChord, parseChord } from '../domain/music';
-import type { Song } from '../domain/song';
+import type { LyricLine, Song } from '../domain/song';
 
 export type WireChord = { id: string; start: number; end: number; label: string; confidence?: number; alternatives?: string[] };
 export type WireSong = Omit<Song, 'chords' | 'originalKey'> & { chords: WireChord[]; importedAt?: number };
@@ -46,8 +46,10 @@ export const api = {
   getJob: (id: string) => request<Job>(`/api/jobs/${id}`),
   listSongs: () => request<SongSummary[]>('/api/songs'),
   getSong: async (id: string) => fromWire(await request<WireSong>(`/api/songs/${id}`)),
-  saveSong: (song: Song) => request(`/api/songs/${song.id}`, { method: 'PUT', body: JSON.stringify(toWire(song)) }),
-  refetchLyrics: async (id: string, title: string, artist: string) =>
-    fromWire(await request<WireSong>(`/api/songs/${id}/lyrics`, { method: 'POST', body: JSON.stringify({ title, artist }) })),
+  /** keepalive lets the save finish while the page unloads. */
+  saveSong: (song: Song, keepalive = false) =>
+    request(`/api/songs/${song.id}`, { method: 'PUT', body: JSON.stringify(toWire(song)), keepalive }),
+  searchLyrics: async (id: string, title: string, artist: string) =>
+    (await request<{ lyrics: LyricLine[] }>(`/api/songs/${id}/lyrics`, { method: 'POST', body: JSON.stringify({ title, artist }) })).lyrics,
   audioUrl: (id: string) => `/api/songs/${id}/audio`,
 };

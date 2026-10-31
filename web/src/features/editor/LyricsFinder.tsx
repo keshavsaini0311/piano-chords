@@ -1,5 +1,7 @@
-// Search LRCLIB again with a corrected title/artist. Found lyrics are applied as an undoable edit.
+// Search LRCLIB again with a corrected title/artist. The server only searches; found lyrics are
+// applied here as an undoable edit and saved by autosave like any other change.
 import { useState, type FormEvent } from 'react';
+import { replaceLyrics } from '../../domain/edits';
 import { api } from '../../services/api';
 import { useSongStore } from '../../state/songStore';
 import { useSong } from '../studio/display';
@@ -17,10 +19,10 @@ export function LyricsFinder() {
     setBusy(true);
     setStatus(null);
     try {
-      const found = await api.refetchLyrics(song.id, title, artist);
-      if (found.lyrics.length) {
-        apply((s) => ({ ...s, title, artist, lyrics: found.lyrics }));
-        setStatus(`Found ${found.lyrics.length} lines.`);
+      const lyrics = await api.searchLyrics(song.id, title, artist);
+      if (lyrics.length) {
+        apply((s) => replaceLyrics(s, { title, artist, lyrics }));
+        setStatus(`Found ${lyrics.length} lines.`);
       } else setStatus('No synced lyrics for that title and artist. Try the exact song name, or check back later.');
     } catch (e) {
       setStatus(`Search failed: ${(e as Error).message}`);

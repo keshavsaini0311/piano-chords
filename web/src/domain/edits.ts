@@ -1,6 +1,7 @@
 // Every edit is a pure (song) => song. Undo/redo, autosave and tests all rely on that.
+import { alignChart, wordStarts } from './align';
 import { parseChord, transposeChord, type Chord } from './music';
-import { MIN_CHORD_SEC, type ChordEvent, type Song } from './song';
+import { MIN_CHORD_SEC, type ChordEvent, type LyricLine, type Song } from './song';
 
 const indexOf = (song: Song, id: string) => song.chords.findIndex((c) => c.id === id);
 
@@ -79,4 +80,20 @@ export function deleteChord(song: Song, id: string): Song {
 
 export function moveAnchor(song: Song, chordId: string, lineId: string, charIndex: number): Song {
   return { ...song, anchors: { ...song.anchors, [chordId]: { lineId, charIndex } } };
+}
+
+/** New lyrics replace the old; anchors pointed at the old lines, so they go too. */
+export function replaceLyrics(song: Song, found: { title: string; artist: string; lyrics: LyricLine[] }): Song {
+  return { ...song, ...found, anchors: {} };
+}
+
+/** Moves a chord one word left (-1) or right (+1) over the lyrics, crossing line ends. */
+export function moveChordToWord(song: Song, chordId: string, step: 1 | -1): Song {
+  const lines = alignChart(song).flatMap((row) => (row.kind === 'lyric' ? [row] : []));
+  const words = lines.flatMap((row) => wordStarts(row.line.text).map((charIndex) => ({ lineId: row.line.id, charIndex })));
+  const current = lines.flatMap((row) => row.chords.filter((p) => p.event.id === chordId).map((p) => ({ lineId: row.line.id, charIndex: p.charIndex })))[0];
+  if (!current) return song;
+  const at = words.findIndex((w) => w.lineId === current.lineId && w.charIndex === current.charIndex);
+  const target = words[at + step];
+  return at < 0 || !target ? song : moveAnchor(song, chordId, target.lineId, target.charIndex);
 }

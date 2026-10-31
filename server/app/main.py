@@ -78,12 +78,12 @@ def create_app(deps: Deps | None = None) -> FastAPI:
         return FileResponse(audio)  # supports Range, which the <audio> element needs to seek
 
     @app.post("/api/songs/{song_id}/lyrics")
-    def refetch_lyrics(song_id: str, request: LyricsRequest):
+    def search_lyrics(song_id: str, request: LyricsRequest):
+        """Search only. The browser applies the lines as an edit and autosave persists them, so a slow
+        LRCLIB call can never overwrite edits made meanwhile."""
         song = existing_song(song_id)
         lines = deps.lyrics.find(request.title, request.artist, song["duration"]) or []
-        song.update(title=request.title, artist=request.artist, lyrics=[vars(line) for line in lines] or song["lyrics"])
-        store.write_song(song_id, song)
-        return song
+        return {"lyrics": [vars(line) for line in lines]}
 
     return app
 

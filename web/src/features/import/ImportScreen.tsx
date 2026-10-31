@@ -2,9 +2,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { openSong } from '../../App';
 import { api, type Job, type SongSummary } from '../../services/api';
+import { pollJob } from '../../services/jobPolling';
 import { JobProgress } from './JobProgress';
 
-const POLL_MS = 1000;
 const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
 export function ImportScreen() {
@@ -12,11 +12,11 @@ export function ImportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [songs, setSongs] = useState<SongSummary[]>([]);
-  const poll = useRef<ReturnType<typeof setInterval>>(undefined);
+  const stopPolling = useRef<() => void>(() => {});
 
   useEffect(() => {
     api.listSongs().then(setSongs, () => setError('The local server is not running. Start it with: cd server && uv run uvicorn app.main:app'));
-    return () => clearInterval(poll.current);
+    return () => stopPolling.current();
   }, []);
 
   async function start(event?: FormEvent) {
@@ -24,16 +24,19 @@ export function ImportScreen() {
     setError(null);
     try {
       const { jobId, songId } = await api.createSong(url);
-      clearInterval(poll.current);
-      const check = async () => {
-        const latest = await api.getJob(jobId);
-        setJob(latest);
-        if (latest.state === 'done') openSong(songId);
-        if (latest.state === 'done_without_lyrics') setTimeout(() => openSong(songId), 1500); // let the note be read
-        if (!['queued', 'running'].includes(latest.state)) clearInterval(poll.current);
-      };
-      await check();
-      poll.current = setInterval(check, POLL_MS);
+      stopPolling.current();
+      stopPolling.current = pollJob(
+        jobId,
+        (latest) => {
+          setJob(latest);
+          if (latest.state === 'done') openSong(songId);
+          if (latest.state === 'done_without_lyrics') setTimeout(() => openSong(songId), 1500); // let the note be read
+        },
+        (message) => {
+          setJob(null);
+          setError(`Lost track of the import (${message}). If the server restarted, paste the link again.`);
+        },
+      );
     } catch (e) {
       setError((e as Error).message);
     }

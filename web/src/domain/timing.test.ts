@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseChord } from './music';
 import type { ChordEvent } from './song';
-import { snapToBeat, activeChordIndex, beatIndex, beatsUntilNextChord, computePeaks, loopSeekTarget, reviewQueue } from './timing';
+import { isUnsure, snapToBeat, activeChordIndex, beatIndex, beatsUntilNextChord, computePeaks, loopSeekTarget, reviewQueue } from './timing';
 
 const ev = (id: string, start: number, end: number, confidence?: number): ChordEvent => ({
   id, start, end, chord: parseChord('C'), confidence,
@@ -63,5 +63,13 @@ describe('snapToBeat', () => {
     expect(snapToBeat(0.92, beats)).toBe(1);
     expect(snapToBeat(0.75, beats)).toBe(0.75);
     expect(snapToBeat(0.4, [])).toBe(0.4);
+  });
+});
+
+describe('isUnsure', () => {
+  it('flags low confidence and trusts chords without a score', () => {
+    expect(isUnsure(ev('x', 0, 1, 0.3))).toBe(true);
+    expect(isUnsure(ev('x', 0, 1, 0.9))).toBe(false);
+    expect(isUnsure(ev('x', 0, 1))).toBe(false);
   });
 });

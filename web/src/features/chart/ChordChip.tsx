@@ -7,7 +7,7 @@ import { player } from '../../services/player';
 import { useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
 import { diagrams } from '../instrument/diagrams';
-import { UNSURE_BELOW } from '../timeline/Timeline';
+import { isUnsure } from '../../domain/timing';
 
 type Props = { event: ChordEvent; label: string; voicing: Voicing; active: boolean; selected: boolean };
 
@@ -16,7 +16,7 @@ export const ChordChip = memo(function ChordChip({ event, label, voicing, active
   const profile = useViewStore((s) => s.profile);
   const selectChord = useViewStore((s) => s.selectChord);
   const Diagram = diagrams[profile.instrumentId];
-  const className = ['chord-chip', active && 'active', selected && 'selected', (event.confidence ?? 1) < UNSURE_BELOW && 'unsure'].filter(Boolean).join(' ');
+  const className = ['chord-chip', active && 'active', selected && 'selected', isUnsure(event) && 'unsure'].filter(Boolean).join(' ');
   return (
     <span className="chord-chip-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button

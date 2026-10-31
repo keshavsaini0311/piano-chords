@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { api } from '../services/api';
 import { setChord } from '../domain/edits';
 import { parseChord } from '../domain/music';
 import type { Song } from '../domain/song';
-import { HISTORY_LIMIT, useSongStore } from './songStore';
+import { HISTORY_LIMIT, subscribeAutosave, useSongStore } from './songStore';
 
 const song: Song = {
   id: 'abcdefghijk', title: 'Demo', artist: 'Nobody', duration: 4, originalKey: 'C', beats: [],
@@ -37,5 +38,25 @@ describe('song store history', () => {
   it('ignores edits that change nothing', () => {
     store().apply((s) => s);
     expect(store().past).toEqual([]);
+  });
+});
+
+describe('autosave', () => {
+  beforeEach(() => store().load(song));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('sends a pending save immediately when autosave stops (leaving the studio)', () => {
+    const save = vi.spyOn(api, 'saveSong').mockResolvedValue({});
+    const stop = subscribeAutosave();
+    store().apply((s) => ({ ...s, title: 'edited' }));
+    stop();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save.mock.calls[0][0].title).toBe('edited');
+  });
+
+  it('does not save when nothing changed', () => {
+    const save = vi.spyOn(api, 'saveSong').mockResolvedValue({});
+    subscribeAutosave()();
+    expect(save).not.toHaveBeenCalled();
   });
 });

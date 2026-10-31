@@ -1,7 +1,7 @@
 // Edit the selected chord: what it is, when it starts, and split/merge/delete.
 // You edit in the key you are viewing; setChordFromDisplay stores it back in the original key.
 import { useMemo } from 'react';
-import { confirmChord, deleteChord, mergeWithNext, moveChordStart, setChordFromDisplay, splitChord } from '../../domain/edits';
+import { confirmChord, deleteChord, mergeWithNext, moveChordStart, moveChordToWord, setChordFromDisplay, splitChord } from '../../domain/edits';
 import { accidentalsForKey, formatChord, noteName, toPitchClass, transposeChord, type Chord } from '../../domain/music';
 import { MIN_CHORD_SEC } from '../../domain/song';
 import { usePlaybackStore } from '../../state/playbackStore';
@@ -10,7 +10,7 @@ import { useSongView, useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
 import { diagrams } from '../instrument/diagrams';
 import { formatTime, useActiveIndex, useDisplay, useSong, useVoicings } from '../studio/display';
-import { UNSURE_BELOW } from '../timeline/Timeline';
+import { isUnsure } from '../../domain/timing';
 
 const QUALITIES: [string, string][] = [
   ['', 'Major'], ['m', 'Minor'], ['7', '7'], ['maj7', 'maj7'], ['m7', 'm7'], ['sus2', 'sus2'], ['sus4', 'sus4'], ['dim', 'dim'],
@@ -44,7 +44,7 @@ export function Inspector() {
   const root = shown.kind === 'chord' ? shown.root : null;
   const quality = shown.kind === 'chord' ? shown.quality : null;
   const Diagram = diagrams[profile.instrumentId];
-  const unsure = (event.confidence ?? 1) < UNSURE_BELOW;
+  const unsure = isUnsure(event);
 
   return (
     <section className="panel" aria-label="Selected chord">
@@ -92,6 +92,12 @@ export function Inspector() {
         <button className="btn" onClick={() => apply((s) => deleteChord(s, event.id))} disabled={song.chords.length < 2}>Remove</button>
         {unsure && <button className="btn" onClick={() => apply((s) => confirmChord(s, event.id))}>Mark as checked</button>}
       </div>
+      {song.lyrics.length > 0 && (
+        <div className="button-row" role="group" aria-label="Position over the lyrics">
+          <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, -1))}>Over the previous word</button>
+          <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, 1))}>Over the next word</button>
+        </div>
+      )}
     </section>
   );
 }

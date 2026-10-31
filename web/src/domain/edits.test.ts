@@ -4,6 +4,8 @@ import { MIN_CHORD_SEC, validate, type Song } from './song';
 import {
   confirmChord,
   deleteChord,
+  moveChordToWord,
+  replaceLyrics,
   mergeWithNext,
   moveAnchor,
   moveChordStart,
@@ -116,5 +118,27 @@ describe('edits', () => {
     const next = confirmChord(song, 'c2');
     expect(byId(next, 'c2').confidence).toBe(1);
     expect(byId(next, 'c1').confidence).toBe(0.5);
+  });
+
+  it('replaceLyrics swaps lyrics and drops anchors that pointed at the old lines', () => {
+    const anchored = moveAnchor(song, 'c3', 'l0', 8);
+    const next = replaceLyrics(anchored, { title: 'New', artist: 'Someone', lyrics: [{ id: 'l0', start: 0, end: 8, text: 'other words' }] });
+    expect(next.lyrics[0].text).toBe('other words');
+    expect(next.title).toBe('New');
+    expect(next.anchors).toEqual({});
+  });
+
+  it('moveChordToWord steps a chord across words and lines', () => {
+    const twoLines: Song = { ...song, lyrics: [
+      { id: 'l0', start: 0, end: 4, text: 'walking down the road' },
+      { id: 'l1', start: 4, end: 8, text: 'next line here' },
+    ] };
+    // c1 starts at 0, so it sits on "walking" (index 0)
+    expect(moveChordToWord(twoLines, 'c1', 1).anchors.c1).toEqual({ lineId: 'l0', charIndex: 8 });
+    const onRoad = moveAnchor(twoLines, 'c1', 'l0', 17);
+    expect(moveChordToWord(onRoad, 'c1', 1).anchors.c1).toEqual({ lineId: 'l1', charIndex: 0 });
+    const onNext = moveAnchor(twoLines, 'c1', 'l1', 0);
+    expect(moveChordToWord(onNext, 'c1', -1).anchors.c1).toEqual({ lineId: 'l0', charIndex: 17 });
+    expect(moveChordToWord(twoLines, 'c1', -1)).toBe(twoLines); // already on the first word
   });
 });

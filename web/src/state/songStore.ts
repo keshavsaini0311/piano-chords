@@ -47,24 +47,33 @@ export const useSongStore = create<SongState>((set, get) => ({
 
 const AUTOSAVE_DELAY_MS = 800;
 
-/** Saves the song shortly after the last change. Returns an unsubscribe function. */
+/** Saves the song shortly after the last change, and immediately when the studio closes or the
+page unloads, so a quick Back or reload never drops the last edit. Returns a stop function. */
 export function subscribeAutosave(): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let pending = false;
+  const flush = (keepalive = false) => {
+    clearTimeout(timer);
+    const song = useSongStore.getState().song;
+    if (!pending || !song) return;
+    pending = false;
+    api.saveSong(song, keepalive).then(
+      () => useSongStore.setState({ saveState: 'saved' }),
+      () => useSongStore.setState({ saveState: 'error' }),
+    );
+  };
   const unsubscribe = useSongStore.subscribe((state, previous) => {
     if (state.revision === previous.revision || !state.song) return;
+    pending = true;
     useSongStore.setState({ saveState: 'saving' });
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      const song = useSongStore.getState().song;
-      if (!song) return;
-      api.saveSong(song).then(
-        () => useSongStore.setState({ saveState: 'saved' }),
-        () => useSongStore.setState({ saveState: 'error' }),
-      );
-    }, AUTOSAVE_DELAY_MS);
+    timer = setTimeout(flush, AUTOSAVE_DELAY_MS);
   });
+  const onUnload = () => flush(true);
+  if (typeof window !== 'undefined') window.addEventListener('beforeunload', onUnload);
   return () => {
-    clearTimeout(timer);
+    flush();
+    if (typeof window !== 'undefined') window.removeEventListener('beforeunload', onUnload);
     unsubscribe();
   };
 }

@@ -8,7 +8,7 @@ export type ChartRow =
   | { kind: 'lyric'; line: LyricLine; chords: PlacedChord[] }
   | { kind: 'instrumental'; chords: ChordEvent[] };
 
-function wordStarts(text: string): number[] {
+export function wordStarts(text: string): number[] {
   const starts: number[] = [];
   for (let i = 0; i < text.length; i++) if (text[i] !== ' ' && (i === 0 || text[i - 1] === ' ')) starts.push(i);
   return starts.length ? starts : [0];

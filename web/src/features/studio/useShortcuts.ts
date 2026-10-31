@@ -6,13 +6,14 @@ import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
 import { useViewStore } from '../../state/viewStore';
 import { stepReview } from '../editor/ReviewQueue';
+import { isTypingTarget } from './shortcutTarget';
 import { toggleLoop, togglePlay } from '../player/PlayerBar';
 
 export function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('input, textarea, select, [contenteditable]')) return;
+      if (isTypingTarget(target.tagName, target.getAttribute('type'), target.isContentEditable)) return;
       const song = useSongStore.getState().song;
       if (!song) return;
       const view = useViewStore.getState();

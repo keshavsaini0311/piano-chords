@@ -3,7 +3,7 @@
 // In edit mode each chord has a handle on its left edge: drag it to move the change, snapping to beats.
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { moveChordStart } from '../../domain/edits';
-import { snapToBeat } from '../../domain/timing';
+import { isUnsure, snapToBeat } from '../../domain/timing';
 import { api } from '../../services/api';
 import { player } from '../../services/player';
 import { loadPeaks } from '../../services/waveform';
@@ -15,7 +15,6 @@ import { formatTime, useActiveIndex, useDisplay, useSong } from '../studio/displ
 
 export const WINDOW_SEC = 20;
 const PEAKS_PER_SEC = 25;
-export const UNSURE_BELOW = 0.6;
 
 const percent = (t: number, start: number) => `${((t - start) / WINDOW_SEC) * 100}%`;
 const span = (start: number, end: number, windowStart: number) => ({
@@ -94,7 +93,7 @@ export function Timeline() {
           {visible.map(({ c, i }) => (
             <button
               key={c.id}
-              className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', (c.confidence ?? 1) < UNSURE_BELOW && 'unsure', c.chord.kind === 'none' && 'silent'].filter(Boolean).join(' ')}
+              className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', isUnsure(c) && 'unsure', c.chord.kind === 'none' && 'silent'].filter(Boolean).join(' ')}
               style={span(c.start, c.end, windowStart)}
               onClick={() => {
                 selectChord(c.id);

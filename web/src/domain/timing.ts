@@ -35,8 +35,13 @@ export function beatsUntilNextChord(chords: ChordEvent[], beats: number[], time:
   return beats.filter((b) => b > time && b <= next.start).length;
 }
 
-export function reviewQueue(chords: ChordEvent[], threshold = 0.6): string[] {
-  return chords.filter((c) => c.confidence !== undefined && c.confidence < threshold).map((c) => c.id);
+/** Below this confidence a chord is shown dashed and queued for review. */
+export const UNSURE_BELOW = 0.6;
+
+export const isUnsure = (event: ChordEvent, threshold = UNSURE_BELOW) => event.confidence !== undefined && event.confidence < threshold;
+
+export function reviewQueue(chords: ChordEvent[], threshold = UNSURE_BELOW): string[] {
+  return chords.filter((c) => isUnsure(c, threshold)).map((c) => c.id);
 }
 
 export function loopSeekTarget(time: number, loop: Loop | null): number | null {

@@ -119,14 +119,16 @@ def test_put_then_get_round_trips_edits(tmp_path):
     assert client.get(f"/api/songs/{SONG_ID}").json()["chords"][0]["label"] == "Am"
 
 
-def test_refetch_lyrics_uses_the_corrected_title(tmp_path):
+def test_lyrics_search_returns_lines_without_touching_the_saved_song(tmp_path):
     lyrics = FakeLyrics(None)
     client = make_client(tmp_path, lyrics=lyrics)
     wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    before = client.get(f"/api/songs/{SONG_ID}").json()
     lyrics.lines = [Line("l0", 0, 6, "a new line")]
-    song = client.post(f"/api/songs/{SONG_ID}/lyrics", json={"title": "Real Title", "artist": "Real Artist"}).json()
+    found = client.post(f"/api/songs/{SONG_ID}/lyrics", json={"title": "Real Title", "artist": "Real Artist"}).json()
     assert lyrics.asked[-1] == ("Real Title", "Real Artist")
-    assert song["title"] == "Real Title" and song["lyrics"][0]["text"] == "a new line"
+    assert found["lyrics"][0]["text"] == "a new line"
+    assert client.get(f"/api/songs/{SONG_ID}").json() == before  # the browser saves; the server only searches
 
 
 def test_song_ids_cannot_escape_the_data_folder(tmp_path):

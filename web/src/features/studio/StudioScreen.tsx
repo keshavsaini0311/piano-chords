@@ -2,11 +2,8 @@
 // Play mode puts the music stand (now/next + keys) up top; edit mode swaps in the editor panel.
 import { useEffect, useState } from 'react';
 import { openLibrary } from '../../App';
-import { api } from '../../services/api';
-import { startClock } from '../../services/clock';
-import { player } from '../../services/player';
-import { usePlaybackStore } from '../../state/playbackStore';
-import { subscribeAutosave, useSongStore } from '../../state/songStore';
+import { useSongStore } from '../../state/songStore';
+import { openStudio } from '../../state/studioSession';
 import { useViewStore } from '../../state/viewStore';
 import { ChartPreview } from '../chart/ChartPreview';
 import { NowNextCard } from '../coach/NowNextCard';
@@ -25,30 +22,7 @@ export function StudioScreen({ songId }: { songId: string }) {
   const [error, setError] = useState<string | null>(null);
   useShortcuts();
 
-  useEffect(() => {
-    let stopClock = () => {};
-    const playback = usePlaybackStore.getState();
-    api
-      .getSong(songId)
-      .then(async (loaded) => {
-        useSongStore.getState().load(loaded);
-        await player.load(api.audioUrl(songId));
-        player.setRate(playback.rate);
-        player.onEnded(() => usePlaybackStore.getState().setPlaying(false));
-        stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop);
-      })
-      .catch((e: Error) => setError(e.message));
-    const stopAutosave = subscribeAutosave();
-    return () => {
-      stopClock();
-      stopAutosave();
-      player.pause();
-      playback.setPlaying(false);
-      playback.setLoop(null);
-      playback.setTime(0);
-      useViewStore.getState().selectChord(null);
-    };
-  }, [songId]);
+  useEffect(() => openStudio(songId, setError), [songId]);
 
   if (error)
     return (
