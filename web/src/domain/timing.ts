@@ -55,3 +55,13 @@ export function computePeaks(samples: Float32Array, buckets: number): number[] {
   const top = Math.max(...peaks);
   return top > 0 ? peaks.map((p) => p / top) : peaks;
 }
+
+export const SNAP_SEC = 0.15;
+
+/** Pulls a dragged time onto the nearest beat when it is close enough. */
+export function snapToBeat(time: number, beats: number[], tolerance = SNAP_SEC): number {
+  const i = lastAtOrBefore(beats, time, (b) => b);
+  const candidates = [beats[i], beats[i + 1]].filter((b) => b !== undefined);
+  const nearest = candidates.sort((a, b) => Math.abs(a - time) - Math.abs(b - time))[0];
+  return nearest !== undefined && Math.abs(nearest - time) <= tolerance ? nearest : time;
+}

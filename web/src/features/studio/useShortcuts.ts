@@ -5,6 +5,7 @@ import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
 import { useViewStore } from '../../state/viewStore';
+import { stepReview } from '../editor/ReviewQueue';
 import { toggleLoop, togglePlay } from '../player/PlayerBar';
 
 export function useShortcuts() {
@@ -34,6 +35,8 @@ export function useShortcuts() {
         ']': () => view.setSemitones(song.id, semitones + 1),
         l: () => toggleLoop(song.chords),
         e: () => view.setMode(view.mode === 'play' ? 'edit' : 'play'),
+        j: () => view.mode === 'edit' && stepReview(song, 1),
+        k: () => view.mode === 'edit' && stepReview(song, -1),
       };
       const action = actions[e.key];
       if (action) {

@@ -36,10 +36,10 @@ export function PlayerBar() {
   };
   return (
     <footer className="bar player-bar">
-      <button className="ibtn play-button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+      <button className="play-button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
         {playing ? '❚❚' : '▶'}
       </button>
-      <span className="mono time">
+      <span className="time">
         {formatTime(second)} <span className="muted">/ {formatTime(song.duration)}</span>
       </span>
       <input
@@ -53,7 +53,7 @@ export function PlayerBar() {
         aria-label="Position"
       />
       <button className="btn" aria-pressed={loop !== null} onClick={() => toggleLoop(song.chords)}>
-        {loop ? `Looping ${formatTime(loop.start)}–${formatTime(loop.end)}` : 'Loop this change'}
+        {loop ? `Looping ${formatTime(loop.start)} to ${formatTime(loop.end)}` : 'Loop this change'}
       </button>
       <div className="seg" role="group" aria-label="Speed">
         {SPEEDS.map((s) => (
@@ -62,7 +62,7 @@ export function PlayerBar() {
           </button>
         ))}
       </div>
-      <span className="muted hints">Space play · ← → chord · [ ] key · L loop · E edit</span>
+      <span className="muted hints">Space play/pause, ← → previous/next chord, [ ] key, L loop, E edit</span>
     </footer>
   );
 }

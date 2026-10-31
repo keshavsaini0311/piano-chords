@@ -15,7 +15,7 @@ export function ImportScreen() {
   const poll = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useEffect(() => {
-    api.listSongs().then(setSongs, () => setError('Cannot reach the local server. Is it running on port 8000?'));
+    api.listSongs().then(setSongs, () => setError('The local server is not running. Start it with: cd server && uv run uvicorn app.main:app'));
     return () => clearInterval(poll.current);
   }, []);
 
@@ -41,33 +41,32 @@ export function ImportScreen() {
 
   return (
     <main className="import">
-      <header>
+      <header className="import-head">
         <h1>piano-chords</h1>
-        <p className="muted">Paste a YouTube link. Chords are detected on this computer, then you can fix and play along.</p>
+        <p>Paste a song from YouTube. This computer works out the chords, then you play along and fix anything it got wrong.</p>
       </header>
       <form className="import-form" onSubmit={start}>
-        <label className="lbl" htmlFor="url">YouTube link</label>
+        <label htmlFor="url">YouTube link</label>
         <div className="row">
           <input id="url" className="field" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtu.be/…" autoFocus />
-          <button className="btn btn-p" disabled={!url.trim() || job?.state === 'running'}>Get chords</button>
+          <button className="btn btn-primary" disabled={!url.trim() || job?.state === 'running'}>Get chords</button>
         </div>
         {error && <p className="error" role="alert">{error}</p>}
       </form>
       {job && <JobProgress job={job} onRetry={() => start()} />}
       <section className="library">
-        <h2 className="lbl">Your songs</h2>
+        <h2>Your songs</h2>
         {songs.length === 0 ? (
-          <p className="muted">Nothing imported yet.</p>
+          <p className="muted">Songs you import show up here.</p>
         ) : (
           <ul>
             {songs.map((s) => (
               <li key={s.id}>
                 <button className="library-item" onClick={() => openSong(s.id)}>
                   <span>
-                    <strong>{s.title}</strong>
-                    <span className="muted"> · {s.artist}</span>
+                    <span className="library-title">{s.title}</span> <span className="muted">{s.artist}</span>
                   </span>
-                  <span className="mono muted">{formatDuration(s.duration)}</span>
+                  <span className="muted">{formatDuration(s.duration)}</span>
                 </button>
               </li>
             ))}

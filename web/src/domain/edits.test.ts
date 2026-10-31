@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseChord } from './music';
 import { MIN_CHORD_SEC, validate, type Song } from './song';
 import {
+  confirmChord,
   deleteChord,
   mergeWithNext,
   moveAnchor,
@@ -109,5 +110,11 @@ describe('edits', () => {
   it('moveAnchor pins a chord to a word', () => {
     const next = moveAnchor(song, 'c3', 'l0', 8);
     expect(next.anchors.c3).toEqual({ lineId: 'l0', charIndex: 8 });
+  });
+
+  it('confirmChord marks a chord as checked so it leaves the review queue', () => {
+    const next = confirmChord(song, 'c2');
+    expect(byId(next, 'c2').confidence).toBe(1);
+    expect(byId(next, 'c1').confidence).toBe(0.5);
   });
 });

@@ -17,6 +17,11 @@ export function setChordFromDisplay(song: Song, id: string, label: string, semit
   return setChord(song, id, transposeChord(parseChord(label), -semitones));
 }
 
+/** Marks a chord as checked so it leaves the review queue (undoable like any edit). */
+export function confirmChord(song: Song, id: string): Song {
+  return withChords(song, song.chords.map((c) => (c.id === id ? { ...c, confidence: 1 } : c)));
+}
+
 /** Moves the boundary this chord shares with the previous one, clamped so both keep MIN_CHORD_SEC. */
 export function moveChordStart(song: Song, id: string, newStart: number): Song {
   const i = indexOf(song, id);

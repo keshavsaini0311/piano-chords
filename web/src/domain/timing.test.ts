@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseChord } from './music';
 import type { ChordEvent } from './song';
-import { activeChordIndex, beatIndex, beatsUntilNextChord, computePeaks, loopSeekTarget, reviewQueue } from './timing';
+import { snapToBeat, activeChordIndex, beatIndex, beatsUntilNextChord, computePeaks, loopSeekTarget, reviewQueue } from './timing';
 
 const ev = (id: string, start: number, end: number, confidence?: number): ChordEvent => ({
   id, start, end, chord: parseChord('C'), confidence,
@@ -54,5 +54,14 @@ describe('computePeaks', () => {
   it('takes the loudest sample per bucket, normalised', () => {
     expect(computePeaks(new Float32Array([0, -1, 0.5, 0]), 2)).toEqual([1, 0.5]);
     expect(computePeaks(new Float32Array([0, 0, 0, 0]), 2)).toEqual([0, 0]);
+  });
+});
+
+describe('snapToBeat', () => {
+  it('snaps to a beat within the tolerance and leaves other times alone', () => {
+    const beats = [0, 0.5, 1, 1.5];
+    expect(snapToBeat(0.92, beats)).toBe(1);
+    expect(snapToBeat(0.75, beats)).toBe(0.75);
+    expect(snapToBeat(0.4, [])).toBe(0.4);
   });
 });

@@ -7,7 +7,7 @@ import { useViewStore } from '../../state/viewStore';
 import { useActiveIndex, useDisplay, useSong, useVoicings } from '../studio/display';
 import { ChordChip } from './ChordChip';
 
-const CHORDS_PER_ROW = 8; // instrumental stretches are split into rows this long
+const CHORDS_PER_ROW = 4; // chord-only stretches become lead-sheet lines: | Em | G | C | Am |
 
 type Row = { key: string; chordIds: string[] } & ({ kind: 'lyric'; segments: { event?: ChordEvent; text: string }[] } | { kind: 'instrumental'; chords: ChordEvent[] });
 
@@ -51,7 +51,7 @@ export function ChartPreview() {
     if (mode === 'play') rowRefs.current[currentRow]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [currentRow, mode]);
 
-  const chip = (event: ChordEvent, instrumental = false) => (
+  const chip = (event: ChordEvent) => (
     <ChordChip
       key={event.id}
       event={event}
@@ -59,7 +59,6 @@ export function ChartPreview() {
       voicing={voicings[indexById.get(event.id)!] ?? []}
       active={event.id === activeId}
       selected={event.id === selected}
-      instrumental={instrumental}
     />
   );
 
@@ -68,11 +67,11 @@ export function ChartPreview() {
       {rows.map((row, i) => (
         <div key={row.key} ref={(el) => void (rowRefs.current[i] = el)} className={i === currentRow ? 'chart-row current' : 'chart-row'}>
           {row.kind === 'instrumental' ? (
-            <div className="chart-instrumental">{row.chords.map((c) => chip(c, true))}</div>
+            <div className="lead-sheet">{row.chords.map((c) => chip(c))}</div>
           ) : (
             row.segments.map((segment, s) => (
               <span key={s} className="chart-segment">
-                {segment.event ? chip(segment.event) : <span className="chord-chip">&nbsp;</span>}
+                {segment.event ? chip(segment.event) : <span className="chord-chip spacer">–</span>}
                 <span className="chart-text">{segment.text || ' '}</span>
               </span>
             ))

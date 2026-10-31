@@ -1,4 +1,5 @@
 // The studio: loads the song and audio, runs the clock and autosave, and lays out the panels.
+// Play mode puts the music stand (now/next + keys) up top; edit mode swaps in the editor panel.
 import { useEffect, useState } from 'react';
 import { openLibrary } from '../../App';
 import { api } from '../../services/api';
@@ -10,6 +11,9 @@ import { useViewStore } from '../../state/viewStore';
 import { ChartPreview } from '../chart/ChartPreview';
 import { NowNextCard } from '../coach/NowNextCard';
 import { PianoStrip } from '../coach/PianoStrip';
+import { Inspector } from '../editor/Inspector';
+import { LyricsFinder } from '../editor/LyricsFinder';
+import { ReviewQueue } from '../editor/ReviewQueue';
 import { PlayerBar } from '../player/PlayerBar';
 import { Timeline } from '../timeline/Timeline';
 import { StudioHeader } from './StudioHeader';
@@ -42,31 +46,41 @@ export function StudioScreen({ songId }: { songId: string }) {
       playback.setPlaying(false);
       playback.setLoop(null);
       playback.setTime(0);
+      useViewStore.getState().selectChord(null);
     };
   }, [songId]);
 
   if (error)
     return (
       <main className="studio-error">
-        <p role="alert">Could not open this song: {error}</p>
-        <button className="btn" onClick={openLibrary}>Back to songs</button>
+        <p role="alert">This song could not be opened: {error}</p>
+        <button className="btn" onClick={openLibrary}>Back to your songs</button>
       </main>
     );
-  if (!song) return <main className="studio-loading muted">Loading…</main>;
+  if (!song) return <main className="studio-loading muted">Opening the song…</main>;
   return (
     <div className="studio" data-mode={mode}>
       <StudioHeader />
       <Timeline />
+      {mode === 'play' && (
+        <section className="stand" aria-label="What to play">
+          <NowNextCard />
+          <div className="stand-keys">
+            <PianoStrip />
+          </div>
+        </section>
+      )}
       <div className="studio-body">
         <main className="studio-main">
-          <span className="lbl">Chart</span>
           <ChartPreview />
         </main>
-        <aside className="studio-aside">
-          <NowNextCard />
-          <PianoStrip />
-          <p className="muted small">Dashed blocks are chords the detector was unsure about. Press E to review them.</p>
-        </aside>
+        {mode === 'edit' && (
+          <aside className="studio-aside">
+            <Inspector />
+            <ReviewQueue />
+            <LyricsFinder />
+          </aside>
+        )}
       </div>
       <PlayerBar />
     </div>
