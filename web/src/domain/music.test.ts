@@ -78,6 +78,15 @@ describe('display pipeline', () => {
     expect(displayChord(parseChord('C#'), easyAuto(0), 'Fm')).toBe('Db');
   });
 
+  it('spells borrowed chords the conventional way in keys without sharps or flats', () => {
+    const view = { semitones: 0, difficulty: 'full' as const, spelling: 'auto' as const };
+    expect(displayChord(parseChord('A#'), view, 'C')).toBe('Bb');
+    expect(displayChord(parseChord('D#'), view, 'C')).toBe('Eb');
+    expect(displayChord(parseChord('G#'), view, 'Am')).toBe('Ab');
+    expect(displayChord(parseChord('D/F#'), view, 'C')).toBe('D/F#');
+    expect(displayChord(parseChord('F#m'), view, 'G')).toBe('F#m');
+  });
+
   it('picks accidentals from the key', () => {
     expect(accidentalsForKey('Fm')).toBe('flats');
     expect(accidentalsForKey('A')).toBe('sharps');

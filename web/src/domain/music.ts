@@ -11,11 +11,13 @@ export type Chord =
 
 export type Difficulty = 'easy' | 'full';
 export type Spelling = 'auto' | 'sharps' | 'flats';
-export type Accidentals = 'sharps' | 'flats';
+/** 'mixed' is for C major / A minor: borrowed chords as musicians write them (Bb, Eb, Ab, but F#). */
+export type Accidentals = 'sharps' | 'flats' | 'mixed';
 export type DisplaySettings = { semitones: number; difficulty: Difficulty; spelling: Spelling };
 
 const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+const MIXED_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const LETTER_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const QUALITY_ALIASES: Record<string, Quality> = {
   maj: '', M: '', min: 'm', mi: 'm', '-': 'm', M7: 'maj7', min7: 'm7', 'ø': 'm7b5', hdim7: 'm7b5', o: 'dim',
@@ -29,7 +31,7 @@ const MINOR_KEY_NAMES = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m
 export const toPitchClass = (n: number): PitchClass => ((((n % 12) + 12) % 12) as PitchClass);
 
 export function noteName(pc: PitchClass, accidentals: Accidentals): string {
-  return (accidentals === 'flats' ? FLAT_NAMES : SHARP_NAMES)[pc];
+  return (accidentals === 'flats' ? FLAT_NAMES : accidentals === 'mixed' ? MIXED_NAMES : SHARP_NAMES)[pc];
 }
 
 function parseNote(name: string): PitchClass {
@@ -93,6 +95,7 @@ export function transposeKey(key: string, semitones: number): string {
 }
 
 export function accidentalsForKey(key: string): Accidentals {
+  if (key === 'C' || key === 'Am') return 'mixed';
   return FLAT_KEYS.has(key) ? 'flats' : 'sharps';
 }
 
@@ -110,6 +113,8 @@ const MINOR_DIATONIC: [number, Quality][] = [[0, 'm'], [2, 'dim'], [3, ''], [5, 
 /**
  * Picks the key whose diatonic chords cover the most playing time, counting the tonic chord twice
  * so relative major/minor pairs (Ab vs Fm) are decided by which tonic the song sits on.
+ * Tried and measured on the 28-song UG benchmark: a bonus for the first/last chord made it worse
+ * (pop songs often fade out on the loop's last chord), so it is not used.
  * ponytail: duration heuristic, swap for a key-profile model if it guesses wrong often.
  */
 export function estimateKey(events: { chord: Chord; start: number; end: number }[]): string {

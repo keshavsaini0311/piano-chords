@@ -86,7 +86,8 @@ describe.skipIf(!DATA)('Ultimate Guitar benchmark', () => {
       const ourKey = estimateKey(song.chords);
       const ourKeyAligned = transposeKey(ourKey, best.shift);
       const known = !!tonality;
-      const exact = known && sameKey(ourKeyAligned, tonality);
+      // UG's key field is sometimes the sounding key and sometimes the capo shape key: accept either.
+      const exact = known && (sameKey(ourKeyAligned, tonality) || sameKey(ourKeyAligned, transposeKey(tonality, capo)));
       const relative = known && !exact && (sameKey(transposeKey(ourKeyAligned.endsWith('m') ? ourKeyAligned.slice(0, -1) : ourKeyAligned + 'm', ourKeyAligned.endsWith('m') ? 3 : -3), tonality));
 
       // Transpose check: our pipeline turning the chart's sounding chords back into its capo shapes.
