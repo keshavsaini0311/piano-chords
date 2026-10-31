@@ -1,6 +1,8 @@
-// Waveform, chord blocks and lyric lane for a window of the song. The window pages with playback
-// (re-rendering once per page); only the playhead follows time every frame.
-// In edit mode each chord has a handle on its left edge: drag it to move the change, snapping to beats.
+// A continuous timeline: the playhead stays in the centre and the song scrolls past it.
+// Grab and drag anywhere to move through the song (left = forward); a plain click jumps there.
+// The track follows time through a CSS transform set outside React, so playback never re-renders
+// the chord blocks; only the active-chord highlight re-renders, once per chord change.
+// In edit mode each chord has a handle on its left edge: drag it to move the change (snaps to beats).
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { moveChordStart } from '../../domain/edits';
 import { isUnsure, snapToBeat } from '../../domain/timing';
@@ -14,151 +16,189 @@ import { ChordName } from '../../ui/ChordName';
 import { ChordPopover } from '../editor/ChordPopover';
 import { formatTime, useActiveIndex, useDisplay, useSong } from '../studio/display';
 
-export const WINDOW_SEC = 20;
+export const WINDOW_SEC = 20; // seconds visible across the timeline
 const PEAKS_PER_SEC = 25;
+const DRAG_THRESHOLD_PX = 4;
+const TICK_SEC = 2;
 
-const percent = (t: number, start: number) => `${((t - start) / WINDOW_SEC) * 100}%`;
-const span = (start: number, end: number, windowStart: number) => ({
-  left: percent(Math.max(start, windowStart), windowStart),
-  width: `${((Math.min(end, windowStart + WINDOW_SEC) - Math.max(start, windowStart)) / WINDOW_SEC) * 100}%`,
-});
-
-function Playhead({ windowStart }: { windowStart: number }) {
-  const time = usePlaybackStore((s) => s.time);
-  if (time < windowStart || time > windowStart + WINDOW_SEC) return null;
-  return <div className="playhead" style={{ left: percent(time, windowStart) }} aria-hidden="true" />;
-}
-
-function Waveform({ peaks, windowStart }: { peaks: number[]; windowStart: number }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const el = canvas.current;
-    if (!el || !peaks.length) return;
-    const ratio = window.devicePixelRatio || 1;
-    el.width = el.clientWidth * ratio;
-    el.height = el.clientHeight * ratio;
-    const ctx = el.getContext('2d')!;
-    ctx.clearRect(0, 0, el.width, el.height);
-    ctx.fillStyle = getComputedStyle(el).getPropertyValue('--muted').trim() || '#888';
-    const first = Math.floor(windowStart * PEAKS_PER_SEC);
-    const count = WINDOW_SEC * PEAKS_PER_SEC;
-    const barWidth = el.width / count;
-    for (let i = 0; i < count; i++) {
-      const h = Math.max(1, (peaks[first + i] ?? 0) * el.height * 0.9);
-      ctx.fillRect(i * barWidth, (el.height - h) / 2, Math.max(1, barWidth - ratio), h);
-    }
-  }, [peaks, windowStart]);
-  return <canvas ref={canvas} className="waveform" aria-hidden="true" />;
+function drawWaveform(canvas: HTMLCanvasElement | null, peaks: number[], time: number) {
+  if (!canvas || !peaks.length) return;
+  const ratio = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth * ratio;
+  const h = canvas.clientHeight * ratio;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, w, h);
+  const styles = getComputedStyle(canvas);
+  const played = styles.getPropertyValue('--now').trim() || '#f80';
+  const upcoming = styles.getPropertyValue('--muted').trim() || '#888';
+  const count = WINDOW_SEC * PEAKS_PER_SEC;
+  const first = (time - WINDOW_SEC / 2) * PEAKS_PER_SEC;
+  const barWidth = w / count;
+  const offset = (first - Math.floor(first)) * barWidth; // keeps bars gliding smoothly between peaks
+  for (let i = 0; i <= count; i++) {
+    const peak = peaks[Math.floor(first) + i] ?? 0;
+    const bar = Math.max(1, peak * h * 0.9);
+    const x = i * barWidth - offset;
+    ctx.fillStyle = x < w / 2 ? played : upcoming; // left of the centre playhead has been played
+    ctx.fillRect(x, (h - bar) / 2, Math.max(1, barWidth - ratio), bar);
+  }
 }
 
 export function Timeline() {
   const song = useSong();
-  const windowStart = usePlaybackStore((s) => Math.floor(s.time / WINDOW_SEC) * WINDOW_SEC);
-  const windowEnd = windowStart + WINDOW_SEC;
   const active = useActiveIndex();
   const { selectedChordId, selectChord, mode } = useViewStore();
   const apply = useSongStore((s) => s.apply);
   const { label } = useDisplay();
   const [peaks, setPeaks] = useState<number[]>([]);
-  const [drag, setDrag] = useState<{ id: string; time: number } | null>(null);
-  const scrubWindow = useRef<number | null>(null); // window start while scrubbing, so the view doesn't page under the pointer
+  const [width, setWidth] = useState(0);
+  const [edge, setEdge] = useState<{ id: string; time: number } | null>(null);
   const lanes = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const pan = useRef<{ x: number; time: number; moved: boolean } | null>(null);
+  const justPanned = useRef(false);
+  const pxPerSec = width / WINDOW_SEC;
+
+  useEffect(() => {
+    const el = lanes.current!;
+    const observer = new ResizeObserver(() => setWidth(el.clientWidth));
+    observer.observe(el);
+    setWidth(el.clientWidth);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     loadPeaks(api.audioUrl(song.id), Math.ceil(song.duration * PEAKS_PER_SEC)).then(setPeaks, () => setPeaks([]));
   }, [song.id, song.duration]);
 
-  const timeAt = (clientX: number, start = windowStart) => {
+  // Follow playback without re-rendering: move the track and repaint the waveform.
+  useEffect(() => {
+    if (!width) return;
+    const paint = (time: number) => {
+      if (track.current) track.current.style.transform = `translateX(${width / 2 - time * pxPerSec}px)`;
+      drawWaveform(canvas.current, peaks, time);
+    };
+    paint(usePlaybackStore.getState().time);
+    return usePlaybackStore.subscribe((s, prev) => {
+      if (s.time !== prev.time) paint(s.time);
+    });
+  }, [width, pxPerSec, peaks]);
+
+  const clampTime = (t: number) => Math.min(Math.max(t, 0), song.duration);
+  const timeAtX = (clientX: number) => {
     const box = lanes.current!.getBoundingClientRect();
-    return start + Math.min(Math.max((clientX - box.left) / box.width, 0), 0.999) * WINDOW_SEC;
-  };
-  const scrubStart = (e: PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    scrubWindow.current = windowStart;
-    player.seek(timeAt(e.clientX));
-  };
-  const scrubMove = (e: PointerEvent) => scrubWindow.current !== null && player.seek(timeAt(e.clientX, scrubWindow.current));
-  const scrubEnd = () => (scrubWindow.current = null);
-  const dragTo = (e: PointerEvent, id: string) => setDrag({ id, time: snapToBeat(timeAt(e.clientX), song.beats) });
-  const endDrag = () => {
-    if (drag) apply((s) => moveChordStart(s, drag.id, drag.time));
-    setDrag(null);
+    return clampTime(usePlaybackStore.getState().time + (clientX - box.left - width / 2) / pxPerSec);
   };
 
-  const visible = song.chords.map((c, i) => ({ c, i })).filter(({ c }) => c.end > windowStart && c.start < windowEnd);
-  const ticks = Array.from({ length: WINDOW_SEC / 2 }, (_, i) => windowStart + i * 2);
+  const onPointerDown = (e: PointerEvent) => {
+    if ((e.target as HTMLElement).closest('.chord-edge, .chord-popover-edit')) return;
+    pan.current = { x: e.clientX, time: usePlaybackStore.getState().time, moved: false };
+  };
+  const onPointerMove = (e: PointerEvent) => {
+    const p = pan.current;
+    if (!p) return;
+    const dx = e.clientX - p.x;
+    if (!p.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return;
+    if (!p.moved) {
+      p.moved = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    player.seek(clampTime(p.time - dx / pxPerSec));
+  };
+  const onPointerUp = (e: PointerEvent) => {
+    const p = pan.current;
+    pan.current = null;
+    if (!p) return;
+    if (p.moved) {
+      justPanned.current = true;
+      setTimeout(() => (justPanned.current = false), 0);
+    } else if (!(e.target as HTMLElement).closest('button')) player.seek(timeAtX(e.clientX));
+  };
+
+  const px = (t: number) => `${t * pxPerSec}px`;
+  const ticks = Array.from({ length: Math.floor(song.duration / TICK_SEC) + 1 }, (_, i) => i * TICK_SEC);
   return (
-    <section className="timeline" aria-label="Timeline">
-      <div className="timeline-lanes" ref={lanes}>
-        <div className="scrub-zone" onPointerDown={scrubStart} onPointerMove={scrubMove} onPointerUp={scrubEnd} onPointerCancel={scrubEnd} title="Drag to scrub">
+    <section className="timeline" aria-label="Timeline: drag to move through the song">
+      <div
+        className="timeline-lanes"
+        ref={lanes}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => (pan.current = null)}
+      >
+        <canvas ref={canvas} className="waveform" aria-hidden="true" />
+        <div className="track" ref={track} style={{ width: px(song.duration) }}>
           <div className="ruler" aria-hidden="true">
             {ticks.map((t) => (
-              <span key={t} style={{ left: percent(t, windowStart) }}>{formatTime(t)}</span>
+              <span key={t} style={{ left: px(t) }}>{formatTime(t)}</span>
             ))}
           </div>
-          <div className="tl-audio">
-            <Waveform peaks={peaks} windowStart={windowStart} />
-          </div>
-        </div>
-        <div className="chord-lane">
-          {visible.map(({ c, i }) => (
-            <button
-              key={c.id}
-              className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', isUnsure(c) && 'unsure', c.chord.kind === 'none' && 'silent'].filter(Boolean).join(' ')}
-              style={span(c.start, c.end, windowStart)}
-              onClick={() => {
-                selectChord(c.id);
-                player.seek(c.start);
-              }}
-              aria-label={`${label(c.chord)} at ${formatTime(c.start)}`}
-            >
-              <ChordName label={label(c.chord)} />
-            </button>
-          ))}
-          {mode === 'edit' &&
-            visible
-              .filter(({ c, i }) => i > 0 && c.start >= windowStart)
-              .map(({ c }) => (
+          <div className="audio-row" />
+          <div className="chord-lane">
+            {song.chords.map((c, i) => (
+              <button
+                key={c.id}
+                className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', isUnsure(c) && 'unsure', c.chord.kind === 'none' && 'silent'].filter(Boolean).join(' ')}
+                style={{ left: px(c.start), width: px(c.end - c.start) }}
+                onClick={() => {
+                  if (justPanned.current) return;
+                  selectChord(c.id);
+                  player.seek(c.start);
+                }}
+                aria-label={`${label(c.chord)} at ${formatTime(c.start)}`}
+              >
+                <ChordName label={label(c.chord)} />
+              </button>
+            ))}
+            {mode === 'edit' &&
+              song.chords.slice(1).map((c) => (
                 <button
                   key={`edge-${c.id}`}
-                  className={drag?.id === c.id ? 'chord-edge dragging' : 'chord-edge'}
-                  style={{ left: percent(c.start, windowStart) }}
+                  className={edge?.id === c.id ? 'chord-edge dragging' : 'chord-edge'}
+                  style={{ left: px(c.start) }}
                   aria-label={`Move the change into ${label(c.chord)}`}
                   onPointerDown={(e) => {
+                    e.stopPropagation();
                     e.currentTarget.setPointerCapture(e.pointerId);
-                    dragTo(e, c.id);
+                    setEdge({ id: c.id, time: c.start });
                   }}
-                  onPointerMove={(e) => drag?.id === c.id && dragTo(e, c.id)}
-                  onPointerUp={endDrag}
-                  onPointerCancel={() => setDrag(null)}
+                  onPointerMove={(e) => {
+                    if (edge?.id === c.id) setEdge({ id: c.id, time: snapToBeat(timeAtX(e.clientX), song.beats) });
+                  }}
+                  onPointerUp={() => {
+                    if (edge && edge.time !== c.start) apply((s) => moveChordStart(s, edge.id, edge.time));
+                    setEdge(null);
+                  }}
+                  onPointerCancel={() => setEdge(null)}
                 />
               ))}
-          {drag && (
-            <div className="drag-ghost" style={{ left: percent(drag.time, windowStart) }}>
-              <span>{drag.time.toFixed(2)}s</span>
-            </div>
-          )}
+            {edge && (
+              <div className="drag-ghost" style={{ left: px(edge.time) }}>
+                <span>{formatTime(edge.time)}</span>
+              </div>
+            )}
+          </div>
+          <div className="lyric-lane">
+            {song.lyrics
+              .filter((l) => l.text.trim())
+              .map((l) => (
+                <span key={l.id} style={{ left: px(l.start), width: px(l.end - l.start) }}>{l.text}</span>
+              ))}
+          </div>
+          {mode === 'edit' &&
+            song.chords
+              .map((c, i) => ({ c, i }))
+              .filter(({ c }) => c.id === selectedChordId)
+              .map(({ c, i }) => <ChordPopover key={c.id} event={c} index={i} style={{ left: px(c.start) }} />)}
         </div>
-        <div className="lyric-lane">
-          {song.lyrics
-            .filter((l) => l.end > windowStart && l.start < windowEnd && l.text.trim())
-            .map((l) => (
-              <span key={l.id} style={span(l.start, l.end, windowStart)}>{l.text}</span>
-            ))}
-          {!song.lyrics.length && <span className="no-lyrics">No lyrics for this song yet</span>}
-        </div>
-        <Playhead windowStart={windowStart} />
-        {mode === 'edit' &&
-          visible
-            .filter(({ c }) => c.id === selectedChordId)
-            .map(({ c, i }) => (
-              <ChordPopover
-                key={c.id}
-                event={c}
-                index={i}
-                style={{ left: `clamp(0px, calc(${((Math.max(c.start, windowStart) - windowStart) / WINDOW_SEC) * 100}% - 8px), calc(100% - min(380px, 100%)))` }}
-              />
-            ))}
+        <div className="playhead" aria-hidden="true" />
+        {!song.lyrics.length && <span className="no-lyrics muted small">No lyrics for this song yet</span>}
       </div>
     </section>
   );

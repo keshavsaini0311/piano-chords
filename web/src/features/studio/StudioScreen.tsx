@@ -33,21 +33,22 @@ export function StudioScreen({ songId }: { songId: string }) {
   if (!song) return <main className="studio-loading muted">Opening the song…</main>;
   return (
     <div className="studio" data-mode={mode}>
-      <StudioHeader />
-      {mode === 'edit' && (
-        <>
-          <Timeline />
-          <EditBar />
-        </>
-      )}
-      {mode === 'play' && (
-        <section className="stand" aria-label="What to play">
-          <NowNextCard />
-          <div className="stand-keys">
-            <PianoStrip />
-          </div>
-        </section>
-      )}
+      <div className="studio-top">
+        <StudioHeader />
+        {mode === 'edit' ? (
+          <>
+            <Timeline />
+            <EditBar />
+          </>
+        ) : (
+          <section className="stand" aria-label="What to play">
+            <NowNextCard />
+            <div className="stand-keys">
+              <PianoStrip />
+            </div>
+          </section>
+        )}
+      </div>
       <div className="studio-body">
         <main className="studio-main">
           {song.lyrics.length === 0 && <LyricsFinder />}

@@ -1,37 +1,24 @@
-// Chords over lyrics (or chord rows when there are no lyrics). The current row is shaded and
-// scrolled into view during playback.
+// The chart: chords over lyrics, and lead-sheet bars (with repeat counts) where there are no lyrics.
+// The current line is shaded and kept in view during playback; past lines fade back.
 import { useEffect, useMemo, useRef } from 'react';
-import { alignChart, type ChartRow } from '../../domain/align';
+import { alignChart } from '../../domain/align';
+import { toLeadSheet, type SheetLine } from '../../domain/leadSheet';
 import type { ChordEvent } from '../../domain/song';
 import { useViewStore } from '../../state/viewStore';
 import { useActiveIndex, useDisplay, useSong, useVoicings } from '../studio/display';
 import { ChordChip } from './ChordChip';
 
-const CHORDS_PER_ROW = 4; // chord-only stretches become lead-sheet lines: | Em | G | C | Am |
-
-type Row = { key: string; chordIds: string[] } & ({ kind: 'lyric'; segments: { event?: ChordEvent; text: string }[] } | { kind: 'instrumental'; chords: ChordEvent[] });
-
-function toRows(chart: ChartRow[]): Row[] {
-  const rows: Row[] = [];
-  chart.forEach((row, r) => {
-    if (row.kind === 'instrumental') {
-      for (let i = 0; i < row.chords.length; i += CHORDS_PER_ROW) {
-        const chords = row.chords.slice(i, i + CHORDS_PER_ROW);
-        rows.push({ key: `i${r}-${i}`, kind: 'instrumental', chords, chordIds: chords.map((c) => c.id) });
-      }
-      return;
-    }
-    const { line, chords } = row;
-    const segments: { event?: ChordEvent; text: string }[] = [];
-    const firstIndex = chords[0]?.charIndex ?? line.text.length;
-    if (firstIndex > 0) segments.push({ text: line.text.slice(0, firstIndex) });
-    chords.forEach((placed, i) => {
-      const end = chords[i + 1]?.charIndex ?? line.text.length;
-      segments.push({ event: placed.event, text: line.text.slice(placed.charIndex, Math.max(end, placed.charIndex)) });
-    });
-    rows.push({ key: line.id, kind: 'lyric', segments, chordIds: chords.map((c) => c.event.id) });
+function lyricSegments(line: Extract<SheetLine, { kind: 'lyric' }>) {
+  const { row } = line;
+  const text = row.line.text;
+  const segments: { event?: ChordEvent; text: string }[] = [];
+  const first = row.chords[0]?.charIndex ?? text.length;
+  if (first > 0) segments.push({ text: text.slice(0, first) });
+  row.chords.forEach((placed, i) => {
+    const end = row.chords[i + 1]?.charIndex ?? text.length;
+    segments.push({ event: placed.event, text: text.slice(placed.charIndex, Math.max(end, placed.charIndex)) });
   });
-  return rows;
+  return segments;
 }
 
 export function ChartPreview() {
@@ -41,39 +28,44 @@ export function ChartPreview() {
   const mode = useViewStore((s) => s.mode);
   const { label } = useDisplay();
   const voicings = useVoicings();
-  const rows = useMemo(() => toRows(alignChart(song)), [song]);
+  const lines = useMemo(() => toLeadSheet(alignChart(song), 4, (e) => label(e.chord)), [song, label]);
   const indexById = useMemo(() => new Map(song.chords.map((c, i) => [c.id, i])), [song.chords]);
   const activeId = song.chords[active]?.id;
-  const currentRow = rows.findIndex((r) => activeId && r.chordIds.includes(activeId));
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const currentLine = lines.findIndex((l) => activeId !== undefined && l.ids.includes(activeId));
+  const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     if (mode !== 'play') return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    rowRefs.current[currentRow]?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
-  }, [currentRow, mode]);
+    lineRefs.current[currentLine]?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+  }, [currentLine, mode]);
 
-  const chip = (event: ChordEvent) => (
+  const chip = (event: ChordEvent, isActive: boolean, isSelected: boolean) => (
     <ChordChip
       key={event.id}
       event={event}
       label={label(event.chord)}
       voicing={voicings[indexById.get(event.id)!] ?? []}
-      active={event.id === activeId}
-      selected={event.id === selected}
+      active={isActive}
+      selected={isSelected}
     />
   );
 
   return (
     <div className="chart">
-      {rows.map((row, i) => (
-        <div key={row.key} ref={(el) => void (rowRefs.current[i] = el)} className={`chart-row${i === currentRow ? ' current' : i < currentRow ? ' past' : ''}`}>
-          {row.kind === 'instrumental' ? (
-            <div className="lead-sheet">{row.chords.map((c) => chip(c))}</div>
+      {lines.map((line, i) => (
+        <div key={line.ids[0] ?? i} ref={(el) => void (lineRefs.current[i] = el)} className={`chart-row${i === currentLine ? ' current' : i < currentLine ? ' past' : ''}`}>
+          {line.kind === 'bars' ? (
+            <div className="lead-sheet">
+              {line.chords.map((c, col) =>
+                chip(c, activeId !== undefined && line.columnOf.get(activeId) === col, selected !== null && line.columnOf.get(selected) === col),
+              )}
+              {line.repeats > 1 && <span className="repeat" title={`Played ${line.repeats} times`}>×{line.repeats}</span>}
+            </div>
           ) : (
-            row.segments.map((segment, s) => (
+            lyricSegments(line).map((segment, s) => (
               <span key={s} className="chart-segment">
-                {segment.event ? chip(segment.event) : <span className="chord-chip spacer">–</span>}
+                {segment.event ? chip(segment.event, segment.event.id === activeId, segment.event.id === selected) : <span className="chord-chip spacer">–</span>}
                 <span className="chart-text">{segment.text || ' '}</span>
               </span>
             ))

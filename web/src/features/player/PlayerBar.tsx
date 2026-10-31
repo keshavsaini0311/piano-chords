@@ -43,7 +43,11 @@ export function PlayerBar() {
   return (
     <footer className="bar player-bar">
       <button className="play-button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Space">
-        {playing ? '❚❚' : '▶'}
+        {playing ? (
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" /></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5z" fill="currentColor" /></svg>
+        )}
       </button>
       <span className="time">
         {formatTime(second)} <span className="muted">/ {formatTime(song.duration)}</span>
@@ -62,7 +66,7 @@ export function PlayerBar() {
         {loop ? `Looping ${formatTime(loop.start)} to ${formatTime(loop.end)}` : 'Loop this change'}
       </button>
       <label className="volume" title="Volume">
-        <span aria-hidden="true">{volume === 0 ? '🔇' : '🔊'}</span>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 7h3l4-3v10l-4-3H3z" fill="currentColor" />{volume > 0 && <path d="M12.5 6.5a3.5 3.5 0 0 1 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />}{volume > 0.5 && <path d="M14.5 4.5a6.5 6.5 0 0 1 0 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />}</svg>
         <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label="Volume" />
       </label>
       <button className="btn" onClick={() => setRate(SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length])} title="Tap to change speed (pitch stays the same)">

@@ -13,7 +13,10 @@ export function StudioHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="studio-header">
-      <button className="ibtn" onClick={openLibrary} aria-label="Back to your songs">‹</button>
+      <button className="back-button" onClick={openLibrary} aria-label="Back to your songs">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        Songs
+      </button>
       <div className="title">
         <div className="title-name">{song.title}</div>
         <div className="muted small">{song.artist}</div>
