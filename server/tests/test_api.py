@@ -198,3 +198,40 @@ def test_import_refines_chord_timing_before_saving(tmp_path):
     wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
     chords = client.get(f"/api/songs/{SONG_ID}").json()["chords"]
     assert chords[0]["end"] == 1.5 and chords[1]["start"] == 1.5
+
+
+def test_song_list_summarises_chords_and_lyrics(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    summary = client.get("/api/songs").json()[0]
+    assert summary["chordTime"] == {"Fm": 2, "Db": 2}  # seconds per chord, silence left out
+    assert summary["hasLyrics"] is True
+
+
+def test_playlists_round_trip_and_live_in_the_data_folder(tmp_path):
+    client = make_client(tmp_path)
+    assert client.get("/api/playlists").json() == []
+    playlists = [{"id": "p1", "name": "Warm up", "songIds": [SONG_ID]}]
+    assert client.put("/api/playlists", json=playlists).status_code == 200
+    assert client.get("/api/playlists").json() == playlists
+    assert (tmp_path / "playlists.json").exists()
+    assert client.put("/api/playlists", json=[{"id": "p1"}]).status_code == 422  # malformed is rejected
+
+
+def test_removing_a_song_deletes_its_folder_and_takes_it_out_of_playlists(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    client.put("/api/playlists", json=[{"id": "p1", "name": "Warm up", "songIds": [SONG_ID, "otherSongId"]}])
+    assert client.delete(f"/api/songs/{SONG_ID}").status_code == 200
+    assert not (tmp_path / "songs" / SONG_ID).exists()
+    assert client.get("/api/songs").json() == []
+    assert client.get("/api/playlists").json()[0]["songIds"] == ["otherSongId"]
+    assert client.delete(f"/api/songs/{SONG_ID}").status_code == 404
+
+
+def test_cover_is_served_from_the_song_folder(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    (tmp_path / "songs" / SONG_ID / "cover.jpg").write_bytes(b"jpeg-bytes")
+    response = client.get(f"/api/songs/{SONG_ID}/cover")
+    assert response.status_code == 200 and response.content == b"jpeg-bytes"
