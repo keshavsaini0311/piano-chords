@@ -3,7 +3,7 @@
 import { formatChord, simplifyChord, type Chord, type Difficulty } from './music';
 import type { Song } from './song';
 
-export function chordsByUse(song: Song, difficulty: Difficulty, limit = 6): Chord[] {
+export function chordsByUse(song: Song, difficulty: Difficulty, limit = 5): Chord[] {
   const time = new Map<string, { chord: Chord; seconds: number }>();
   for (const event of song.chords) {
     const chord = simplifyChord(event.chord, difficulty);

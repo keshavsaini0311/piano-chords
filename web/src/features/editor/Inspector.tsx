@@ -76,33 +76,31 @@ export function Inspector() {
       {voicing.length > 0 && <Diagram range={profile.keyRange} now={voicing} showNoteNames={profile.showNoteNames} size="mini" />}
 
       <div className="panel">
-        <span className="small">{isUnsure(event) ? 'This one might be wrong. Listen, then pick the right chord:' : 'Sounds wrong? Pick the right chord:'}</span>
-        <div className="picker suggestions" role="group" aria-label="Chords used in this song">
-          {suggestions.map((chord) => {
-            const current = label(chord) === shownLabel;
-            return (
-              <button key={formatChord(chord, 'sharps')} aria-pressed={current} onClick={() => apply((s) => setChord(s, event.id, chord))}>
-                <ChordName label={label(chord)} />
-              </button>
-            );
-          })}
+        <span className="small muted">{isUnsure(event) ? 'Might be wrong. Tap the right chord:' : 'Sounds wrong? Tap the right chord:'}</span>
+        <div className="chip-row" role="group" aria-label="Chords used in this song">
+          {suggestions.map((chord) => (
+            <button
+              key={formatChord(chord, 'sharps')}
+              aria-pressed={label(chord) === shownLabel}
+              onClick={() => apply((s) => confirmChord(setChord(s, event.id, chord), event.id))}
+            >
+              <ChordName label={label(chord)} />
+            </button>
+          ))}
         </div>
-        {isUnsure(event) && (
-          <button className="btn btn-primary" onClick={() => apply((s) => confirmChord(s, event.id))}>{shownLabel} sounds right</button>
-        )}
       </div>
 
       <details className="more">
         <summary>A different chord</summary>
         <div className="panel">
-          <div className="picker" role="group" aria-label="Root note">
+          <div className="chip-row" role="group" aria-label="Root note">
             {Array.from({ length: 12 }, (_, pc) => (
               <button key={pc} aria-pressed={root === pc} onClick={() => pickShown({ kind: 'chord', root: toPitchClass(pc), quality: quality ?? '' })}>
                 <ChordName label={noteName(toPitchClass(pc), accidentals)} />
               </button>
             ))}
           </div>
-          <div className="picker" role="group" aria-label="Chord type">
+          <div className="chip-row" role="group" aria-label="Chord type">
             {(profile.difficulty === 'easy' ? SIMPLE_TYPES : ALL_TYPES).map(([q, name]) => (
               <button key={q} aria-pressed={quality === q} disabled={root === null} onClick={() => root !== null && pickShown({ kind: 'chord', root, quality: q })}>
                 {name}
@@ -115,26 +113,28 @@ export function Inspector() {
 
       <details className="more">
         <summary>Timing and more</summary>
-        <div className="panel">
-          <span className="small muted">The change into this chord happens…</span>
-          <div className="button-row">
-            <button className="btn" onClick={() => apply((s) => moveChordStart(s, event.id, event.start - NUDGE_SEC))} disabled={index === 0}>A bit earlier</button>
-            <button className="btn" onClick={() => apply((s) => moveChordStart(s, event.id, event.start + NUDGE_SEC))}>A bit later</button>
-          </div>
-          <div className="button-row">
-            <button className="btn" onClick={() => apply((s) => splitChord(s, event.id, usePlaybackStore.getState().time))} disabled={!canSplit} title="Move the playhead inside this chord first">
-              Split at playhead
-            </button>
-            <button className="btn" onClick={() => apply((s) => mergeWithNext(s, event.id))} disabled={index === song.chords.length - 1}>Join with next</button>
-            <button className="btn" onClick={() => apply((s) => deleteChord(s, event.id))} disabled={song.chords.length < 2}>Remove</button>
-          </div>
+        <dl className="tool-rows">
+          <dt>Starts</dt>
+          <dd className="seg">
+            <button onClick={() => apply((s) => moveChordStart(s, event.id, event.start - NUDGE_SEC))} disabled={index === 0}>◀ Earlier</button>
+            <button onClick={() => apply((s) => moveChordStart(s, event.id, event.start + NUDGE_SEC))}>Later ▶</button>
+          </dd>
+          <dt>Chord</dt>
+          <dd className="seg">
+            <button onClick={() => apply((s) => splitChord(s, event.id, usePlaybackStore.getState().time))} disabled={!canSplit} title="Split where the playhead is">Split</button>
+            <button onClick={() => apply((s) => mergeWithNext(s, event.id))} disabled={index === song.chords.length - 1}>Join next</button>
+            <button onClick={() => apply((s) => deleteChord(s, event.id))} disabled={song.chords.length < 2}>Remove</button>
+          </dd>
           {song.lyrics.length > 0 && (
-            <div className="button-row">
-              <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, -1))}>Over the previous word</button>
-              <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, 1))}>Over the next word</button>
-            </div>
+            <>
+              <dt>Over lyrics</dt>
+              <dd className="seg">
+                <button onClick={() => apply((s) => moveChordToWord(s, event.id, -1))}>◀ Word</button>
+                <button onClick={() => apply((s) => moveChordToWord(s, event.id, 1))}>Word ▶</button>
+              </dd>
+            </>
           )}
-        </div>
+        </dl>
       </details>
     </section>
   );

@@ -1,11 +1,10 @@
-// Steps through the chords the detector was unsure about (J / K).
+// One line: how many chords are flagged, and a button to jump to the next one (J / K also work).
 import { reviewQueue } from '../../domain/timing';
 import { player } from '../../services/player';
 import { useViewStore } from '../../state/viewStore';
-import { ChordName } from '../../ui/ChordName';
-import { formatTime, useDisplay, useSong } from '../studio/display';
+import { useSong } from '../studio/display';
 
-/** Selects and plays the next (step 1) or previous (step -1) chord in the review queue. */
+/** Selects and plays the next (step 1) or previous (step -1) flagged chord. */
 export function stepReview(song: ReturnType<typeof useSong>, step: 1 | -1) {
   const ids = reviewQueue(song.chords);
   if (!ids.length) return;
@@ -18,36 +17,12 @@ export function stepReview(song: ReturnType<typeof useSong>, step: 1 | -1) {
 
 export function ReviewQueue() {
   const song = useSong();
-  const selected = useViewStore((s) => s.selectedChordId);
-  const { label } = useDisplay();
-  const ids = reviewQueue(song.chords);
-  const byId = new Map(song.chords.map((c) => [c.id, c]));
-  if (!ids.length) return null; // nothing to review: say nothing
+  const count = reviewQueue(song.chords).length;
+  if (!count) return null;
   return (
-    <section className="panel" aria-label="Chords to review">
-      <div className="panel-head">
-        <h2 className="section-title">To review ({ids.length})</h2>
-        {ids.length > 0 && <span className="muted small">J and K step through them</span>}
-      </div>
-      <ol className="queue">
-          {ids.map((id) => {
-            const c = byId.get(id)!;
-            return (
-              <li key={id}>
-                <button
-                  aria-current={id === selected}
-                  onClick={() => {
-                    useViewStore.getState().selectChord(id);
-                    player.seek(c.start);
-                  }}
-                  title={formatTime(c.start)}
-                >
-                  <ChordName label={label(c.chord)} /> <span className="muted small">{formatTime(c.start)}</span>
-                </button>
-              </li>
-            );
-          })}
-      </ol>
-    </section>
+    <div className="review-line">
+      <span className="muted small">{count === 1 ? '1 chord flagged as unsure' : `${count} chords flagged as unsure`}</span>
+      <button className="btn" onClick={() => stepReview(song, 1)} title="J">Next flagged ›</button>
+    </div>
   );
 }
