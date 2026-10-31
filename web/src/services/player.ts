@@ -8,6 +8,7 @@ export interface Player {
   currentTime(): number;
   duration(): number;
   setRate(rate: number): void;
+  setVolume(volume: number): void; // 0..1
   onEnded(callback: () => void): void;
 }
 
@@ -27,6 +28,7 @@ export function createAudioPlayer(): Player {
     currentTime: () => audio.currentTime,
     duration: () => audio.duration || 0,
     setRate: (rate) => (audio.playbackRate = rate),
+    setVolume: (volume) => (audio.volume = volume),
     onEnded: (callback) => (audio.onended = callback),
   };
 }

@@ -22,6 +22,7 @@ export function openStudio(songId: string, onError: (message: string) => void): 
       await player.load(api.audioUrl(songId));
       if (closed) return;
       player.setRate(playback.rate);
+      player.setVolume(useViewStore.getState().volume);
       player.onEnded(() => usePlaybackStore.getState().setPlaying(false));
       stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop);
     })

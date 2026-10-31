@@ -11,6 +11,7 @@ import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
 import { useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
+import { ChordPopover } from '../editor/ChordPopover';
 import { formatTime, useActiveIndex, useDisplay, useSong } from '../studio/display';
 
 export const WINDOW_SEC = 20;
@@ -60,16 +61,24 @@ export function Timeline() {
   const { label } = useDisplay();
   const [peaks, setPeaks] = useState<number[]>([]);
   const [drag, setDrag] = useState<{ id: string; time: number } | null>(null);
+  const scrubWindow = useRef<number | null>(null); // window start while scrubbing, so the view doesn't page under the pointer
   const lanes = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadPeaks(api.audioUrl(song.id), Math.ceil(song.duration * PEAKS_PER_SEC)).then(setPeaks, () => setPeaks([]));
   }, [song.id, song.duration]);
 
-  const timeAt = (clientX: number) => {
+  const timeAt = (clientX: number, start = windowStart) => {
     const box = lanes.current!.getBoundingClientRect();
-    return windowStart + ((clientX - box.left) / box.width) * WINDOW_SEC;
+    return start + Math.min(Math.max((clientX - box.left) / box.width, 0), 0.999) * WINDOW_SEC;
   };
+  const scrubStart = (e: PointerEvent) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    scrubWindow.current = windowStart;
+    player.seek(timeAt(e.clientX));
+  };
+  const scrubMove = (e: PointerEvent) => scrubWindow.current !== null && player.seek(timeAt(e.clientX, scrubWindow.current));
+  const scrubEnd = () => (scrubWindow.current = null);
   const dragTo = (e: PointerEvent, id: string) => setDrag({ id, time: snapToBeat(timeAt(e.clientX), song.beats) });
   const endDrag = () => {
     if (drag) apply((s) => moveChordStart(s, drag.id, drag.time));
@@ -81,13 +90,15 @@ export function Timeline() {
   return (
     <section className="timeline" aria-label="Timeline">
       <div className="timeline-lanes" ref={lanes}>
-        <div className="ruler" aria-hidden="true">
-          {ticks.map((t) => (
-            <span key={t} style={{ left: percent(t, windowStart) }}>{formatTime(t)}</span>
-          ))}
-        </div>
-        <div className="tl-audio" onPointerDown={(e) => player.seek(timeAt(e.clientX))} title="Click to jump">
-          <Waveform peaks={peaks} windowStart={windowStart} />
+        <div className="scrub-zone" onPointerDown={scrubStart} onPointerMove={scrubMove} onPointerUp={scrubEnd} onPointerCancel={scrubEnd} title="Drag to scrub">
+          <div className="ruler" aria-hidden="true">
+            {ticks.map((t) => (
+              <span key={t} style={{ left: percent(t, windowStart) }}>{formatTime(t)}</span>
+            ))}
+          </div>
+          <div className="tl-audio">
+            <Waveform peaks={peaks} windowStart={windowStart} />
+          </div>
         </div>
         <div className="chord-lane">
           {visible.map(({ c, i }) => (
@@ -137,6 +148,17 @@ export function Timeline() {
           {!song.lyrics.length && <span className="no-lyrics">No lyrics for this song yet</span>}
         </div>
         <Playhead windowStart={windowStart} />
+        {mode === 'edit' &&
+          visible
+            .filter(({ c }) => c.id === selectedChordId)
+            .map(({ c, i }) => (
+              <ChordPopover
+                key={c.id}
+                event={c}
+                index={i}
+                style={{ left: `clamp(0px, calc(${((Math.max(c.start, windowStart) - windowStart) / WINDOW_SEC) * 100}% - 8px), calc(100% - min(380px, 100%)))` }}
+              />
+            ))}
       </div>
     </section>
   );

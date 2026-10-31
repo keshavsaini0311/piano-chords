@@ -3,6 +3,7 @@ import type { ChordEvent } from '../../domain/song';
 import { activeChordIndex } from '../../domain/timing';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
+import { useViewStore } from '../../state/viewStore';
 import { formatTime, useSong } from '../studio/display';
 
 const SPEEDS = [1, 0.75, 0.5];
@@ -30,6 +31,11 @@ export function PlayerBar() {
   const time = usePlaybackStore((s) => s.time);
   const rate = usePlaybackStore((s) => s.rate);
   const loop = usePlaybackStore((s) => s.loop);
+  const volume = useViewStore((s) => s.volume);
+  const setVolume = (v: number) => {
+    player.setVolume(v);
+    useViewStore.getState().setVolume(v);
+  };
   const setRate = (r: number) => {
     player.setRate(r);
     usePlaybackStore.getState().setRate(r);
@@ -55,6 +61,10 @@ export function PlayerBar() {
       <button className="btn" aria-pressed={loop !== null} onClick={() => toggleLoop(song.chords)} title="L">
         {loop ? `Looping ${formatTime(loop.start)} to ${formatTime(loop.end)}` : 'Loop this change'}
       </button>
+      <label className="volume" title="Volume">
+        <span aria-hidden="true">{volume === 0 ? '🔇' : '🔊'}</span>
+        <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} aria-label="Volume" />
+      </label>
       <button className="btn" onClick={() => setRate(SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length])} title="Tap to change speed (pitch stays the same)">
         Speed {rate * 100}%
       </button>

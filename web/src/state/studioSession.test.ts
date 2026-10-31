@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/player', () => ({
-  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), onEnded: vi.fn(), pause: vi.fn() },
+  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn() },
 }));
 vi.mock('../services/clock', () => ({ startClock: vi.fn(() => vi.fn()) }));
 

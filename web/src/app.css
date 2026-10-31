@@ -191,3 +191,41 @@ li[data-status="failed"] .progress-mark { background: var(--now); color: var(--o
 .tool-rows dt { font-size: 13px; color: var(--muted); }
 .tool-rows dd { margin: 0; justify-self: start; }
 .review-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* Header controls share one height so nothing jumps */
+.studio-header .seg { height: 40px; align-items: stretch; }
+.studio-header .seg button { min-height: 0; }
+.key-control { height: 40px; display: flex; }
+.key-button { min-height: 0; height: 38px; align-items: center; }
+.key-button .chord-name { font-size: 17px; }
+
+/* Timeline: drag to scrub */
+.scrub-zone { display: flex; flex-direction: column; gap: 4px; cursor: ew-resize; touch-action: none; }
+.tl-audio { cursor: inherit; }
+
+/* Edit bar */
+.edit-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.edit-hint { flex: 1 1 240px; }
+
+/* In-place chord popover */
+.chord-popover-edit { position: absolute; top: calc(100% + 6px); z-index: 30; width: min(380px, 100%); padding: 14px; display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line2); border-radius: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.28); }
+.pop-head { display: flex; align-items: baseline; gap: 10px; }
+.pop-head .muted { flex: 1; }
+.pop-head .ibtn { align-self: center; width: 36px; height: 36px; }
+.pop-chord { font-size: 34px; line-height: 1; color: var(--edit); }
+.pop-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pop-section { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.chip-row button.chip-quiet, .chip-quiet { border: 1px dashed var(--line2); background: none; color: var(--muted); min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 13px; }
+.chip-row .seg { height: 40px; }
+
+/* Root picker: a one-octave keyboard */
+.root-picker { position: relative; height: 92px; user-select: none; }
+.root-whites { position: absolute; inset: 0; display: flex; gap: 2px; }
+.pc .root-white { flex: 1; border: 1px solid var(--key-line); border-radius: 0 0 8px 8px; background: var(--ivory); color: #1B1E22; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; font-weight: 600; font-size: 13px; }
+.pc .root-black { position: absolute; top: 0; width: 12%; height: 58%; z-index: 1; border: 0; border-radius: 0 0 6px 6px; background: var(--ebony); color: #E6E8EB; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px; font-size: 10px; font-weight: 600; }
+.pc .root-white[aria-pressed="true"], .pc .root-black[aria-pressed="true"] { background: var(--edit); color: #fff; }
+.root-white:hover:not([aria-pressed="true"]) { background: #F4F1FF; }
+
+/* Volume */
+.volume { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.volume input { width: 90px; accent-color: var(--bar-ink); }

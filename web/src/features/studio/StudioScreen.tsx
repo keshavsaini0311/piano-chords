@@ -8,9 +8,8 @@ import { useViewStore } from '../../state/viewStore';
 import { ChartPreview } from '../chart/ChartPreview';
 import { NowNextCard } from '../coach/NowNextCard';
 import { PianoStrip } from '../coach/PianoStrip';
-import { Inspector } from '../editor/Inspector';
 import { LyricsFinder } from '../editor/LyricsFinder';
-import { ReviewQueue } from '../editor/ReviewQueue';
+import { EditBar } from '../editor/EditBar';
 import { PlayerBar } from '../player/PlayerBar';
 import { Timeline } from '../timeline/Timeline';
 import { StudioHeader } from './StudioHeader';
@@ -35,7 +34,12 @@ export function StudioScreen({ songId }: { songId: string }) {
   return (
     <div className="studio" data-mode={mode}>
       <StudioHeader />
-      {mode === 'edit' && <Timeline />}
+      {mode === 'edit' && (
+        <>
+          <Timeline />
+          <EditBar />
+        </>
+      )}
       {mode === 'play' && (
         <section className="stand" aria-label="What to play">
           <NowNextCard />
@@ -50,12 +54,6 @@ export function StudioScreen({ songId }: { songId: string }) {
           <ChartPreview />
           {song.lyrics.length > 0 && <LyricsFinder />}
         </main>
-        {mode === 'edit' && (
-          <aside className="studio-aside">
-            <Inspector />
-            <ReviewQueue />
-          </aside>
-        )}
       </div>
       <PlayerBar />
     </div>
