@@ -8,7 +8,11 @@ import { usePlaybackStore } from './playbackStore';
 import { subscribeAutosave, useSongStore } from './songStore';
 import { useViewStore } from './viewStore';
 
-export function openStudio(songId: string, onError: (message: string) => void): () => void {
+let autoplayNext = false;
+/** The next studio that opens starts playing by itself (used to continue through a playlist). */
+export const requestAutoplay = () => (autoplayNext = true);
+
+export function openStudio(songId: string, onError: (message: string) => void, onEnded: () => void = () => {}): () => void {
   let closed = false;
   let stopClock = () => {};
   const playback = usePlaybackStore.getState();
@@ -23,8 +27,16 @@ export function openStudio(songId: string, onError: (message: string) => void): 
       if (closed) return;
       player.setRate(playback.rate);
       player.setVolume(useViewStore.getState().volume);
-      player.onEnded(() => usePlaybackStore.getState().setPlaying(false));
+      player.onEnded(() => {
+        usePlaybackStore.getState().setPlaying(false);
+        onEnded();
+      });
       stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop);
+      if (autoplayNext) {
+        autoplayNext = false;
+        player.play();
+        playback.setPlaying(true);
+      }
     })
     .catch((e: Error) => !closed && onError(e.message));
 
