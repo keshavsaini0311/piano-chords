@@ -53,6 +53,30 @@ class LyricsProvider(Protocol):
     def find(self, title: str, artist: str, duration: float) -> list[Line] | None: ...
 
 
+NOISE_WORDS = re.compile(r"\b(full|audio|video|songs?|lyrics?|lyrical|official|remaster(?:ed)?|hd|4k)\b", re.IGNORECASE)
+DURATION_TOLERANCE_SEC = 5.0
+
+
+def title_queries(title: str) -> list[str]:
+    """Search texts for a YouTube title, best first. YouTube titles carry channel noise ("Full Song",
+    "Lyrics", "(Remastered 2009)") and often "Artist - Title", so each part is tried on its own too."""
+    text = re.sub(r"[\(\[][^\)\]]*[\)\]]", " ", title)
+    text = re.sub(r"[\"'“”‘’]", "", text)
+    text = re.split(r"\s(?:ft\.?|feat\.?|featuring|with|prod\.?)\s|@|\|", text, flags=re.IGNORECASE)[0]
+    text = NOISE_WORDS.sub(" ", text)
+    parts = [re.sub(r"\s+", " ", part).strip(" -,") for part in re.split(r"\s+-\s+", text)]
+    parts = [part for part in parts if len(part) > 2]
+    queries = ([" ".join(parts)] if len(parts) > 1 else []) + parts[::-1]  # the title usually follows the dash
+    queries += [" ".join(part.split()[:3]) for part in parts[::-1][:1] if len(part.split()) > 3]  # drop a trailing movie name
+    return list(dict.fromkeys(queries))
+
+
+def pick_by_duration(results: list[dict], duration: float, tolerance: float = DURATION_TOLERANCE_SEC) -> dict | None:
+    """Song length is a far better match signal than YouTube channel names."""
+    synced = [r for r in results if r.get("syncedLyrics") and abs((r.get("duration") or 0) - duration) <= tolerance]
+    return min(synced, key=lambda r: abs(r["duration"] - duration), default=None)
+
+
 class LrclibLyrics:
     BASE = "https://lrclib.net/api"
     HEADERS = {"User-Agent": "piano-chords (personal project)"}
@@ -63,10 +87,12 @@ class LrclibLyrics:
                 exact = client.get(f"{self.BASE}/get", params={"track_name": title, "artist_name": artist, "duration": round(duration)})
                 if exact.status_code == 200 and exact.json().get("syncedLyrics"):
                     return parse_lrc(exact.json()["syncedLyrics"], duration)
-                found = client.get(f"{self.BASE}/search", params={"track_name": title, "artist_name": artist})
-                if found.status_code != 200:
-                    return None
-                synced = next((r["syncedLyrics"] for r in found.json() if r.get("syncedLyrics")), None)
-                return parse_lrc(synced, duration) if synced else None
+                for query in title_queries(title):
+                    found = client.get(f"{self.BASE}/search", params={"q": query})
+                    results = found.json() if found.status_code == 200 else []
+                    match = pick_by_duration(results, duration) if isinstance(results, list) else None
+                    if match:
+                        return parse_lrc(match["syncedLyrics"], duration)
+                return None
         except (httpx.HTTPError, ValueError):
             return None

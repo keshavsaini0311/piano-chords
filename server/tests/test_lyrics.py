@@ -33,3 +33,25 @@ def test_clean_title_drops_collab_and_producer_credits():
 def test_song_title_removes_the_artist_prefix():
     assert song_title("Afusic - Pal Pal with @Talwiinder Prod. @AliSoomroMusic", "AFUSIC") == "Pal Pal"
     assert song_title("Pal Pal (Official Video)", "AFUSIC") == "Pal Pal"
+
+
+from app.lyrics import pick_by_duration, title_queries
+
+
+def test_title_queries_strip_noise_and_try_each_part():
+    assert title_queries('"Tum Hi Ho" Aashiqui 2 Full Song') == ["Tum Hi Ho Aashiqui 2", "Tum Hi Ho"]
+    assert title_queries("Agar Tum Saath Ho FULL AUDIO Song") == ["Agar Tum Saath Ho", "Agar Tum Saath"]
+    assert title_queries("Arijit Singh - Phir Le Aya Dil Lyrics") == ["Arijit Singh Phir Le Aya Dil", "Phir Le Aya Dil", "Arijit Singh", "Phir Le Aya"]
+    assert title_queries("Let It Be (Remastered 2009)") == ["Let It Be"]
+    assert title_queries("Vance Joy - 'Riptide'") == ["Vance Joy Riptide", "Riptide", "Vance Joy"]
+    assert title_queries("Pehla Nasha Lyrical") == ["Pehla Nasha"]
+
+
+def test_pick_by_duration_takes_the_closest_synced_match_within_tolerance():
+    results = [
+        {"duration": 300, "syncedLyrics": "[00:01.00] far"},
+        {"duration": 268, "syncedLyrics": "[00:01.00] close"},
+        {"duration": 266, "syncedLyrics": None},
+    ]
+    assert pick_by_duration(results, 267.0)["syncedLyrics"].endswith("close")
+    assert pick_by_duration(results, 200.0) is None
