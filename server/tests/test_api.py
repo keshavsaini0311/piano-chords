@@ -52,6 +52,7 @@ def make_client(tmp_path, lyrics=None, gate=None):
         beats=lambda wav: [i * 0.5 for i in range(12)],
         store=SongStore(tmp_path),
         prepare=lambda audio: audio,
+        refine=lambda wav, segments, beats: segments,
     )
     return TestClient(create_app(deps))
 
@@ -166,6 +167,7 @@ def test_import_deletes_the_temporary_analysis_audio(tmp_path):
     deps = Deps(
         fetcher=FakeFetcher(), detector=FakeDetector(), lyrics=FakeLyrics(None),
         beats=lambda wav: [0.0, 0.5], store=SongStore(tmp_path), prepare=prepare,
+        refine=lambda wav, segments, beats: segments,
     )
     client = TestClient(create_app(deps))
     wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
@@ -181,3 +183,18 @@ def test_data_folder_can_be_moved_with_an_env_var(tmp_path, monkeypatch):
     assert importlib.reload(main).DATA_DIR == tmp_path / "synced"
     monkeypatch.delenv("PC_DATA_DIR")
     importlib.reload(main)
+
+
+def test_import_refines_chord_timing_before_saving(tmp_path):
+    def shift_second_change(wav, segments, beats):
+        segments[1].start = segments[0].end = 1.5  # stand-in refinement: prove its result is what gets saved
+        return segments
+
+    deps = Deps(
+        fetcher=FakeFetcher(), detector=FakeDetector(), lyrics=FakeLyrics(None), beats=lambda wav: [0.0, 0.5],
+        store=SongStore(tmp_path), prepare=lambda audio: audio, refine=shift_second_change,
+    )
+    client = TestClient(create_app(deps))
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    chords = client.get(f"/api/songs/{SONG_ID}").json()["chords"]
+    assert chords[0]["end"] == 1.5 and chords[1]["start"] == 1.5

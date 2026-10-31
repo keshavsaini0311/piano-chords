@@ -8,6 +8,7 @@ from typing import Callable
 from app.audio import AudioFetcher, Meta, to_analysis_wav
 from app.detect import ChordDetector, Segment
 from app.lyrics import Line, LyricsProvider
+from app.refine import refine_timing
 from app.store import SongStore
 
 MIN_SEGMENT_SEC = 0.1  # matches the browser's MIN_CHORD_SEC
@@ -22,6 +23,7 @@ class Deps:
     beats: Callable[[Path], list[float]]
     store: SongStore
     prepare: Callable[[Path], Path] = field(default=to_analysis_wav)  # audio -> file the models read
+    refine: Callable[[Path, list[Segment], list[float]], list[Segment]] = field(default=refine_timing)  # fix change timing
 
 
 def merge_slivers(segments: list[Segment]) -> list[Segment]:
@@ -83,6 +85,7 @@ def run_pipeline(url: str, song_id: str, deps: Deps, on_stage: Callable[[str], N
     wav = deps.prepare(audio)
     segments = merge_slivers(deps.detector.detect(wav))
     beats = deps.beats(wav)
+    segments = deps.refine(wav, segments, beats)
     if wav != audio:
         wav.unlink(missing_ok=True)  # only the models need it; keeps the data folder small to copy or sync
     deps.store.write_detected(song_id, segments)
