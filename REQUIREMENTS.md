@@ -1,0 +1,58 @@
+# piano-chords: requirements (draft)
+
+A personal chord-chart player for learning songs on a Casio SA-51 (32 mini keys).
+Takes the best of Ultimate Guitar and Chordify and adds a piano view.
+
+Status: gathering requirements. Nothing is built yet.
+
+## Why
+
+- Chordify's transpose is limited on the free tier.
+- Ultimate Guitar has no chart for some songs he wants (e.g. *Pal Pal*, AFUSIC with Talwiinder).
+- Neither one shows how to play a chord on a piano with only 32 keys.
+
+## Layout (decided)
+
+```
++------------------------------------------------+
+|  Am        F         C          G              |
+|  lyric line one goes here...                   |
+|  Am        F         C          G              |
+|  lyric line two goes here...                   |   <- chart: chords above lyrics
+|                                                |
+|  [ piano diagram for the current chord ]       |   <- (to confirm)
++------------------------------------------------+
+|  > play  ||  0:42 / 3:15  [transpose -/+]      |   <- song player at the bottom
++------------------------------------------------+
+```
+
+## What we take from each
+
+| From Ultimate Guitar | From Chordify |
+|---|---|
+| Chords written above the lyric lines | The song plays inside the page |
+| Readable song structure (verse, chorus) | The current chord is highlighted in time with the audio |
+| Transpose, auto-scroll | Transpose, loop a section, slow it down |
+
+## Our additions
+
+- **Free transpose to any key.** Example: Fm to Am, so every chord is on white keys.
+- **Piano notes for each chord**, drawn on a keyboard that matches the SA-51's 32-key range.
+
+## Open questions (to settle with Keshav)
+
+1. **Where the song comes from:** a YouTube link, a local MP3, or either one.
+2. **Where the chords come from:** pasted chord-over-lyrics text (UG format), detected
+   automatically from the audio (Chordify's method, much harder), or typed in by hand.
+3. **How chords get synced to the song:** Keshav taps along once to timestamp them,
+   it scrolls at a fixed speed, or detection does it automatically.
+4. **Platform:** a local web app in the browser (my default guess), or something else.
+5. **Piano view:** chord notes only, or a suggested hand position and fingering for
+   beginners as well.
+6. **Song library:** save multiple songs locally, or open one song at a time.
+7. **Must-have list for v1 vs. later.**
+
+## Non-goals (draft)
+
+- No public hosting of copyrighted charts or audio. It is for personal use only.
+- No accounts and no sharing.
