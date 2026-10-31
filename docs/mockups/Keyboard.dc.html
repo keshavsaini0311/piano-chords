@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard strip</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position:relative;width:100%;height:{{h}}px;user-select:none" role="img" aria-label="{{aria}}">
+<div style="position:absolute;inset:0;display:flex;gap:1px;border-radius:7px;overflow:hidden;border:1px solid var(--kline,rgba(0,0,0,.28));background:var(--kb,#1B1B19)">
+<sc-for list="{{whites}}" as="k" hint-placeholder-count="19">
+<div style="flex:1 1 0;min-width:0;background:{{k.bg}};display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:{{pb}}px">
+<sc-if value="{{k.dot}}" hint-placeholder-val="{{false}}"><span style="width:{{dot}}px;height:{{dot}}px;border-radius:50%;background:var(--nxt,#1D4ED8);margin-bottom:3px;box-shadow:0 0 0 2px var(--kw,#fff)"></span></sc-if>
+<span style="font-family:'JetBrains Mono',monospace;font-size:{{fs}}px;font-weight:700;line-height:1;color:{{k.fg}}">{{k.label}}</span>
+</div>
+</sc-for>
+</div>
+<sc-for list="{{blacks}}" as="k" hint-placeholder-count="13">
+<div style="position:absolute;top:0;left:{{k.left}}%;width:3.3%;height:60%;background:{{k.bg}};border-radius:0 0 4px 4px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px;box-shadow:0 2px 0 rgba(0,0,0,.35)">
+<sc-if value="{{k.dot}}" hint-placeholder-val="{{false}}"><span style="width:{{dot}}px;height:{{dot}}px;border-radius:50%;background:var(--nxt,#1D4ED8);margin-bottom:3px;box-shadow:0 0 0 2px var(--kb,#1B1B19)"></span></sc-if>
+<span style="font-family:'JetBrains Mono',monospace;font-size:{{fsb}}px;font-weight:700;line-height:1;color:{{k.fg}}">{{k.label}}</span>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lit":{"editor":"text","default":"57,60,64"},"soon":{"editor":"text","default":"53,57,60"},"kh":{"editor":"int","default":120,"min":32,"max":240},"$preview":{"width":760,"height":120}}'>
+// ponytail: fixed SA-51 range (MIDI 53 = F3 to 84 = C6). Props are MIDI note lists, comma separated.
+var KB_NM = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+function kbList(v){ return String(v == null ? '' : v).split(',').filter(function(x){ return x.trim() !== ''; }).map(Number); }
+class Component extends DCLogic {
+  renderVals() {
+    var lit = kbList(this.props.lit == null ? '57,60,64' : this.props.lit);
+    var soon = kbList(this.props.soon == null ? '' : this.props.soon);
+    var h = Number(this.props.kh) || 120;
+    var big = h >= 80, tiny = h < 50;
+    var whites = [], blacks = [], w = 0;
+    for (var m = 53; m <= 84; m++) {
+      var pc = m % 12, isB = [1,3,6,8,10].indexOf(pc) >= 0, L = lit.indexOf(m) >= 0, S = soon.indexOf(m) >= 0;
+      var label = tiny ? '' : (L ? KB_NM[pc] : (!isB && pc === 0 ? 'C' + (Math.floor(m / 12) - 1) : ''));
+      var k = {
+        dot: S,
+        label: label,
+        bg: L ? 'var(--cur,#C2410C)' : (isB ? 'var(--kb,#1B1B19)' : 'var(--kw,#FFFFFF)'),
+        fg: L ? 'var(--on-cur,#FFFFFF)' : '#5C5B55'
+      };
+      if (isB) { k.left = (w / 19 * 100 - 1.65).toFixed(2); blacks.push(k); } else { whites.push(k); w++; }
+    }
+    var names = lit.map(function(n){ return KB_NM[n % 12]; }).join(' ');
+    return {
+      whites: whites, blacks: blacks, h: h,
+      pb: big ? 8 : 3, dot: big ? 9 : 6, fs: big ? 12 : 9, fsb: big ? 10 : 8,
+      aria: '32-key keyboard, F3 to C6' + (names ? ', play ' + names : '')
+    };
+  }
+}
+</script>
+</body>
+</html>

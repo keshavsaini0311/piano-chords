@@ -1,0 +1,65 @@
+/* piano-chords mockup tokens. Light by default; dark via system or data-theme. */
+.pc{
+  --bg:#F6F5F2;--surface:#FFFFFF;--surface2:#ECEBE6;--line:rgba(22,22,20,.13);--line2:rgba(22,22,20,.24);
+  --fg:#171715;--muted:#5C5B55;
+  --cur:#C2410C;--on-cur:#FFFFFF;--cur-soft:rgba(194,65,12,.12);
+  --nxt:#1D4ED8;--nxt-soft:rgba(29,78,216,.12);
+  --edit:#7C3AED;--unsure:#A16207;
+  --bar:#1C1C1A;--bar-fg:#F2F1EC;--bar-muted:#B3B2AB;
+  --kw:#FFFFFF;--kb:#1B1B19;--kline:rgba(0,0,0,.28);
+  --scrim:rgba(20,20,18,.42);
+  background:var(--bg);color:var(--fg);
+  font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.45;
+  box-sizing:border-box;-webkit-font-smoothing:antialiased;
+}
+@media (prefers-color-scheme: dark){
+  .pc[data-theme="auto"]{
+    --bg:#111110;--surface:#1A1A18;--surface2:#272724;--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.22);
+    --fg:#EEEDE8;--muted:#A6A59E;
+    --cur:#FB923C;--on-cur:#1A0E05;--cur-soft:rgba(251,146,60,.16);
+    --nxt:#7AA7FF;--nxt-soft:rgba(122,167,255,.16);
+    --edit:#B794F6;--unsure:#E3B341;
+    --bar:#0A0A09;--bar-fg:#EEEDE8;--bar-muted:#9C9B94;
+    --kw:#E7E6E1;--kb:#0E0E0D;--kline:rgba(0,0,0,.5);
+    --scrim:rgba(0,0,0,.55);
+  }
+}
+.pc[data-theme="dark"]{
+  --bg:#111110;--surface:#1A1A18;--surface2:#272724;--line:rgba(255,255,255,.11);--line2:rgba(255,255,255,.22);
+  --fg:#EEEDE8;--muted:#A6A59E;
+  --cur:#FB923C;--on-cur:#1A0E05;--cur-soft:rgba(251,146,60,.16);
+  --nxt:#7AA7FF;--nxt-soft:rgba(122,167,255,.16);
+  --edit:#B794F6;--unsure:#E3B341;
+  --bar:#0A0A09;--bar-fg:#EEEDE8;--bar-muted:#9C9B94;
+  --kw:#E7E6E1;--kb:#0E0E0D;--kline:rgba(0,0,0,.5);
+  --scrim:rgba(0,0,0,.55);
+}
+.pc *,.pc *::before,.pc *::after{box-sizing:border-box}
+.pc h1,.pc h2,.pc h3,.pc p{margin:0}
+.pc button{font:inherit;color:inherit;cursor:pointer}
+.pc :focus-visible{outline:2px solid var(--nxt);outline-offset:2px}
+.pc .mono{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace}
+.pc .muted{color:var(--muted)}
+.pc .lbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pc .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 14px;border-radius:11px;border:1px solid var(--line2);background:var(--surface);color:var(--fg);font-weight:500;font-size:14px;white-space:nowrap;text-decoration:none}
+.pc .btn:hover{background:var(--surface2)}
+.pc .btn-p{background:var(--fg);color:var(--bg);border-color:transparent}
+.pc .btn-p:hover{background:var(--fg);opacity:.88}
+.pc .ibtn{display:inline-grid;place-items:center;width:44px;height:44px;flex:none;border-radius:11px;border:1px solid transparent;background:transparent;color:inherit;text-decoration:none}
+.pc .ibtn:hover{background:var(--surface2)}
+.pc .seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--surface2);gap:2px}
+.pc .seg button{border:0;background:transparent;min-height:38px;padding:0 12px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted)}
+.pc .seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.pc .card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.pc .chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--fg);font-size:13px;font-weight:500}
+.pc .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:transparent}
+.pc .field{min-height:48px;width:100%;border:1px solid var(--line2);border-radius:12px;background:var(--surface);color:var(--fg);padding:0 14px;font:inherit;font-size:15px}
+.pc .bar{background:var(--bar);color:var(--bar-fg)}
+.pc .bar .muted{color:var(--bar-muted)}
+.pc .bar .ibtn:hover{background:rgba(255,255,255,.09)}
+.pc .bar .btn{background:transparent;border-color:rgba(255,255,255,.22);color:var(--bar-fg)}
+.pc .bar .btn:hover{background:rgba(255,255,255,.09)}
+.pc .bar .btn[aria-pressed="true"]{background:rgba(251,146,60,.18);border-color:#FB923C;color:#FFD9BD}
+.pc .bar .seg{background:rgba(255,255,255,.08)}
+.pc .bar .seg button{color:var(--bar-muted)}
+.pc .bar .seg button[aria-pressed="true"]{background:rgba(255,255,255,.16);color:var(--bar-fg)}

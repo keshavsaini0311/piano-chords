@@ -97,7 +97,11 @@ type Quality = 'maj'|'min'|'dim'|'aug'|'sus2'|'sus4'|'7'|'maj7'|'min7'|string; /
 type Chord = { kind: 'chord'; root: PitchClass; quality: Quality; bass?: PitchClass }
            | { kind: 'none' };                                    // "N.C.", silence
 
-type ChordEvent = { id: string; start: number; end: number; chord: Chord }; // seconds
+type ChordEvent = {
+  id: string; start: number; end: number; chord: Chord;   // seconds
+  confidence?: number;        // 0..1 from the detector, if it gives one; drives "unsure" + review queue
+  alternatives?: Chord[];     // detector's runner-up guesses, shown in the inspector
+};
 type LyricLine  = { id: string; start: number; end: number; text: string };
 
 type Song = {
@@ -172,9 +176,9 @@ const nearestInversion: Voicer = ...;   // minimises total movement from prev, s
 This is a real **strategy** (swap the algorithm, keep the call site). Here it's justified
 because both versions exist on day one and you switch between them in the UI.
 
-`KeyRange` is config, not a constant. I couldn't verify the SA-51's exact lowest and highest
-notes; it has 32 keys, but which notes they start and end on is unconfirmed. Set it once
-from the real keyboard.
+`KeyRange` is config, not a constant, and it lives in the profile. Default: F3–C6 (MIDI
+53–84, 32 keys). That's an unverified guess about the SA-51, so check it against the real
+keyboard.
 
 ---
 
@@ -401,7 +405,48 @@ Accounts, a database, Redux, websockets, a plugin system, microservices, i18n, E
 - `edits`: every edit keeps `validate()` true.
 - Server: a `normalize_label` table test, and the job pipeline run with a fake detector.
 
-## 10. Open questions for Keshav
+## 10. Decided after the mockups (31 Oct 2026)
+
+**Layout: direction C, "Studio"** (mockups in [docs/mockups](mockups/), start at
+`Studio-Play.dc.html` and `Studio-Edit.dc.html`; colours and type in `theme.css`), plus:
+
+- **From A (beginner help):** hover a chord and a small keyboard shows its notes; the
+  transpose menu ranks keys by how many black keys you'd need; note names are printed on
+  the keys; difficulty defaults to easy.
+- **From B (timing):** a big **Now / Next** card, with beat dots counting down to the next
+  chord ("next: F in 3 · 2 · 1"). The piano strip shows the current chord in orange and the
+  next chord as blue dots.
+
+### Extension points (built now as the smallest working version of each)
+
+| Future addition | Extension point | What exists in v1 |
+|---|---|---|
+| **More instruments** (guitar, ukulele) | `Instrument` = one object bundling the strategies an instrument needs (`voice`, `defaultRange`, `Diagram` component). `instruments` is a `Record<InstrumentId, Instrument>`, and `getInstrument(id)` is the factory. | `piano` only |
+| **Voicing styles** | `voicers: Record<VoicingId, Voicer>` (strategy) | `nearest`, `root` |
+| **Metronome / click / count-in sound** | Beat is already derived state (`beatIndex` selector on the playback store). A metronome is a store subscriber that plays a click when `beatIndex` changes. It needs no new infrastructure. | the visual count-in uses the same selector |
+| **Profiles** (another learner, another keyboard) | `Profile = { id, name, instrumentId, keyRange, difficulty, voicing, showNoteNames }`. Settings that belong to the *person* live in the profile; settings that belong to the *song* (`semitones`, `view`) stay per song. | one default profile, stored in localStorage |
+| **Chord detectors** | `DETECTORS: dict[str, Callable[[], ChordDetector]]`, selected by the env var `PC_DETECTOR` | `lv-chordia` |
+
+> **Try first:** Why is a plain `Record` lookup (`instruments[id]`) a factory, and when
+> would you need a "real" factory class instead?
+
+<details><summary>Answer</summary>
+
+A factory answers "given an id, give me the right implementation" so callers never write
+`if (id === 'piano') ... else if (id === 'guitar')`. A map does exactly that, and adding
+an instrument means adding one entry. You'd only want a factory *function or class*
+when creating the product needs arguments or setup each time (a fresh audio context, a
+loaded sample pack), or when creation can fail and needs handling. Until then, the map
+is the factory.
+</details>
+
+Waveform peaks are computed in the browser (`decodeAudioData`, then `computePeaks`). That
+keeps the API unchanged.
+
+**Pitch-shifting audio is deferred** until open question 1 is answered. v1 transposes the
+chords only.
+
+## 11. Open questions for Keshav
 
 1. **Does your SA-51 have a transpose button?** I couldn't confirm it online. If it does,
    you can play easy Am shapes and the keyboard sounds in Fm, so no audio processing is

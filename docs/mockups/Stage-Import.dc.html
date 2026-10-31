@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stage: import and progress</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="pc" data-theme="{{theme}}" style="min-height:760px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;padding:48px 20px">
+<div style="width:100%;max-width:860px;display:flex;flex-direction:column;gap:14px">
+<label for="yt2" class="lbl">YouTube link</label>
+<div style="display:flex;flex-wrap:wrap;gap:10px">
+<input id="yt2" class="field mono" style="flex:1 1 360px;min-height:64px;font-size:17px;border-radius:16px" value="https://youtube.com/watch?v=[VIDEO-ID]">
+<button type="button" class="btn btn-p" style="min-height:64px;padding:0 28px;font-size:16px;border-radius:16px">Get chords</button>
+</div>
+</div>
+<div style="width:100%;max-width:860px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+<span style="font-size:28px;font-weight:700">Listening for chords…</span>
+<span class="muted mono" style="font-size:14px">Pal Pal · about 40 s left</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+<div style="display:flex;flex-direction:column;gap:6px"><div style="height:8px;border-radius:4px;background:var(--fg)"></div><span style="font-size:13px;font-weight:500">Download audio</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="height:8px;border-radius:4px;background:var(--surface2)"><div style="width:64%;height:8px;border-radius:4px;background:var(--cur)"></div></div><span style="font-size:13px;font-weight:700;color:var(--cur)">Detect chords 64%</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="height:8px;border-radius:4px;background:var(--surface2)"></div><span class="muted" style="font-size:13px">Find timed lyrics</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="height:8px;border-radius:4px;background:var(--surface2)"></div><span class="muted" style="font-size:13px">Ready</span></div>
+</div>
+</div>
+<div style="width:100%;max-width:860px;display:flex;flex-direction:column;gap:10px">
+<span class="lbl">Chords found so far (original key)</span>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<sc-for list="{{found}}" as="f" hint-placeholder-count="12"><span style="{{f.style}}"><span class="mono" style="font-weight:700;font-size:18px">{{f.c}}</span></span></sc-for>
+</div>
+</div>
+<div class="card" style="width:100%;max-width:860px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center">
+<div style="flex:1 1 220px"><div style="font-weight:600">While you wait</div><div class="muted" style="font-size:13px">This song moves through 4 shapes. In A minor (+4) they are all white keys.</div></div>
+<sc-for list="{{shapes}}" as="s" hint-placeholder-count="4">
+<div style="width:120px;display:flex;flex-direction:column;gap:4px"><span class="mono" style="font-weight:700">{{s.c}}</span><dc-import name="Keyboard" lit="{{s.n}}" soon="" kh="36" hint-size="100%,36px"></dc-import></div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":760}}'>
+var FOUND = ['Fm','Db','Ab','Eb','Fm','Db','Ab','Eb','Fm','Dbmaj7?'];
+var TILE = 'min-width:72px;min-height:56px;display:grid;place-items:center;padding:0 12px;border-radius:12px;';
+class Component extends DCLogic {
+  renderVals() {
+    var found = FOUND.map(function(c){ return { c: c, style: TILE + 'border:1px solid var(--line2);background:var(--surface);' }; });
+    for (var k = 0; k < 4; k++) found.push({ c: '', style: TILE + 'border:1px dashed var(--line2);background:transparent;' });
+    return {
+      theme: this.props.theme ?? 'auto', found: found,
+      shapes: [{ c: 'Am', n: '57,60,64' }, { c: 'F', n: '53,57,60' }, { c: 'C', n: '60,64,67' }, { c: 'G', n: '55,59,62' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

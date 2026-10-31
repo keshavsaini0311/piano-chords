@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stage: pause and fix</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="pc" data-theme="{{theme}}" style="min-height:800px;display:flex;flex-direction:column">
+
+<header style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px">
+<a class="ibtn" href="Stage-Play.dc.html" aria-label="Back to playing"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+<div style="flex:1 1 200px;min-width:0;font-weight:600;font-size:16px">Paused · fixing chords <span class="muted" style="font-weight:400;font-size:13px">· tap any bar below</span></div>
+<button class="btn" onClick="{{undo}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"></path></svg>Undo</button>
+<button class="btn" aria-disabled="true" style="opacity:.45"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3"></path></svg>Redo</button>
+</header>
+
+<section style="display:flex;align-items:center;gap:32px;padding:8px 48px 20px;opacity:.4" aria-hidden="true">
+<span class="mono" style="font-size:96px;line-height:1;font-weight:700;color:var(--cur)">{{selC}}</span>
+<span class="muted" style="font-size:18px">every step I <b style="color:var(--fg)">take, the city</b> slows</span>
+</section>
+
+<section style="padding:0 24px" aria-label="Chord timeline">
+<div style="display:flex;gap:6px;overflow:hidden">
+<sc-for list="{{ribbon}}" as="r" hint-placeholder-count="10">
+<button style="{{r.style}}"><span class="mono" style="font-weight:700;font-size:20px">{{r.c}}</span><span style="font-size:11px;opacity:.8">{{r.sub}}</span></button>
+</sc-for>
+</div>
+</section>
+
+<section class="card" style="margin:20px 16px 0;flex:1;border-radius:24px 24px 0 0;border-bottom:0;padding:12px 28px 24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 -12px 40px rgba(0,0,0,.14)">
+<div style="width:44px;height:5px;border-radius:3px;background:var(--line2);align-self:center" aria-hidden="true"></div>
+<div style="display:flex;flex-wrap:wrap;gap:24px 40px">
+<div style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px">
+<div><div style="font-size:20px;font-weight:700">What do you hear in bar 26?</div><div style="font-size:13px;color:var(--unsure);font-weight:600">The detector was only 48% sure here</div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+<sc-for list="{{guesses}}" as="g" hint-placeholder-count="3">
+<button onClick="{{g.pick}}" style="{{g.style}}"><span class="mono" style="font-size:26px;font-weight:700">{{g.c}}</span>
+<span style="width:100%;height:4px;border-radius:2px;background:var(--line)"><span style="display:block;height:4px;border-radius:2px;background:currentColor;width:{{g.w}}"></span></span>
+<span style="font-size:12px;opacity:.8">{{g.p}} likely</span></button>
+</sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span class="lbl">Something else</span>
+<div style="display:flex;flex-wrap:wrap;gap:4px">
+<sc-for list="{{roots}}" as="r" hint-placeholder-count="12"><button class="chip mono" aria-pressed="{{r.on}}" onClick="{{r.pick}}" style="min-width:44px;min-height:44px;justify-content:center">{{r.n}}</button></sc-for>
+</div>
+<div class="seg" role="group" aria-label="Chord type" style="align-self:flex-start;flex-wrap:wrap">
+<sc-for list="{{quals}}" as="q" hint-placeholder-count="5"><button aria-pressed="{{q.on}}" onClick="{{q.pick}}">{{q.n}}</button></sc-for>
+</div>
+</div>
+</div>
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="mono" style="font-size:22px;font-weight:700">{{selC}}</span><span class="muted mono" style="font-size:13px">{{selNames}}</span></div>
+<dc-import name="Keyboard" lit="{{selN}}" soon="" kh="96" hint-size="100%,96px"></dc-import>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span class="lbl">When does it start?</span>
+<div style="display:flex;align-items:stretch;gap:8px">
+<button class="btn" onClick="{{earlier}}" style="flex:1;min-height:56px;font-size:15px">Earlier</button>
+<div style="flex:1;display:grid;place-items:center;border-radius:12px;background:var(--surface2)"><span class="mono" style="font-size:18px;font-weight:700">{{start}}</span></div>
+<button class="btn" onClick="{{later}}" style="flex:1;min-height:56px;font-size:15px">Later</button>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-top:auto">
+<button class="btn" style="flex:1;min-height:56px"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"></path></svg>Hear this bar</button>
+<a class="btn btn-p" href="Stage-Play.dc.html" style="flex:1;min-height:56px">Apply and keep playing</a>
+</div>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":800}}'>
+var NM = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+var PCS = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+function cp(c){ var m = /^([A-G][b#]?)(.*)$/.exec(c); return { r: PCS[m[1]], q: m[2] }; }
+function tr(c, s){ var p = cp(c); return NM[(p.r + s + 144) % 12] + p.q; }
+function notesOf(c){ var p = cp(c), q = p.q, root = 53 + ((p.r + 7) % 12);
+  var ns = [root, root + (/^m(?!aj)/.test(q) || /dim/.test(q) ? 3 : 4), root + (/dim/.test(q) ? 6 : 7)];
+  if (/sus4/.test(q)) ns[1] = root + 5;
+  if (/maj7/.test(q)) ns.push(root + 11); else if (/7/.test(q)) ns.push(root + 10);
+  return ns.join(','); }
+function namesOf(c){ return notesOf(c).split(',').map(function(m){ return NM[m % 12]; }).join(' · '); }
+var SEQ = ['Fm','Db','Ab','Eb','Fm','Db','Ab','Eb','Fm','Dbmaj7','Ab','Eb7','Db','Ab'];
+var SEL = 9, UNSURE = [6, 9, 11], SEMI = 4;
+var QUALS = [['', 'major'], ['m', 'minor'], ['7', '7'], ['maj7', 'maj7'], ['sus4', 'sus4']];
+var TILE = 'flex:1 0 92px;min-height:72px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;padding:6px 12px;border-radius:12px;cursor:pointer;text-align:left;color:var(--fg);';
+class Component extends DCLogic {
+  constructor(props){ super(props); this.state = { root: 5, q: 'maj7', off: 0 }; }
+  renderVals() {
+    var self = this, st = this.state, selC = NM[st.root] + st.q;
+    var ribbon = SEQ.slice(4).map(function(c, j){ var k = j + 4, sel = k === SEL, uns = UNSURE.indexOf(k) >= 0;
+      return { c: sel ? selC : tr(c, SEMI), sub: sel ? 'editing' : (uns ? 'unsure' : 'bar ' + (17 + k)),
+        style: TILE + (sel ? 'border:0;background:var(--fg);color:var(--bg);box-shadow:0 0 0 3px var(--cur);' : uns ? 'border:2px dashed var(--unsure);background:var(--surface);' : 'border:1px solid var(--line2);background:var(--surface);') }; });
+    var set = function(c){ var p = cp(c); self.setState({ root: p.r, q: p.q }); };
+    var guesses = [['Dbmaj7', 48], ['Fm', 27], ['Db', 15]].map(function(g){ var c = tr(g[0], SEMI), on = c === selC;
+      return { c: c, p: g[1] + '%', w: (g[1] * 2) + '%', pick: function(){ set(c); },
+        style: 'min-height:104px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:6px;padding:12px 14px;border-radius:16px;cursor:pointer;text-align:left;' + (on ? 'border:2px solid var(--cur);background:var(--cur-soft);color:var(--fg);' : 'border:1px solid var(--line2);background:var(--surface);color:var(--fg);') }; });
+    var roots = NM.map(function(n, r){ return { n: n, on: r === st.root ? 'true' : 'false', pick: function(){ self.setState({ root: r }); } }; });
+    var quals = QUALS.map(function(q){ return { n: q[1], on: q[0] === st.q ? 'true' : 'false', pick: function(){ self.setState({ q: q[0] }); } }; });
+    var t = 60.4 + st.off * 0.1, s = t % 60;
+    return {
+      theme: this.props.theme ?? 'auto',
+      ribbon: ribbon, guesses: guesses, roots: roots, quals: quals,
+      selC: selC, selN: notesOf(selC), selNames: namesOf(selC),
+      start: Math.floor(t / 60) + ':' + (s < 10 ? '0' : '') + s.toFixed(1),
+      earlier: function(){ self.setState({ off: self.state.off - 1 }); },
+      later: function(){ self.setState({ off: self.state.off + 1 }); },
+      undo: function(){ self.setState({ root: 5, q: 'maj7', off: 0 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

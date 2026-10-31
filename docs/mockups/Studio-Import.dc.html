@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio: import and progress</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="pc" data-theme="{{theme}}" style="min-height:760px;display:flex;flex-direction:column">
+<header style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)">
+<span class="mono" style="font-weight:700;font-size:14px;margin-right:8px">piano-chords</span>
+<label for="yt3" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">YouTube link</label>
+<input id="yt3" class="field mono" style="flex:1 1 320px;min-height:44px;font-size:13px" value="https://youtube.com/watch?v=[VIDEO-ID]">
+<button type="button" class="btn btn-p">Import</button>
+</header>
+
+<section style="padding:20px 16px 16px;background:var(--surface);border-bottom:1px solid var(--line)" aria-label="Timeline filling in">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;padding-left:74px;flex-wrap:wrap;gap:6px">
+<span style="font-weight:600">Pal Pal <span class="muted" style="font-weight:400;font-size:13px">· 3:15 · the timeline fills in as each step finishes</span></span>
+<button class="btn" style="min-height:36px">Cancel</button>
+</div>
+<div style="display:flex;gap:10px">
+<div style="width:64px;flex:none;display:flex;flex-direction:column;gap:8px" class="muted">
+<span style="height:64px;display:flex;align-items:center;font-size:12px">Audio</span>
+<span style="height:44px;display:flex;align-items:center;font-size:12px">Chords</span>
+<span style="height:30px;display:flex;align-items:center;font-size:12px">Lyrics</span>
+</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;position:relative">
+<div style="height:64px;display:flex;align-items:center;gap:1px" aria-hidden="true"><sc-for list="{{wave}}" as="w" hint-placeholder-count="200"><span style="{{w}}"></span></sc-for></div>
+<div style="height:44px;display:flex;gap:2px">
+<sc-for list="{{blocks}}" as="b" hint-placeholder-count="30"><span style="{{b.style}}"><span class="mono" style="font-weight:700;font-size:11px">{{b.c}}</span></span></sc-for>
+</div>
+<div style="height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px dashed var(--line2)"><span class="muted" style="font-size:12px">Waiting for chords to finish, then fetching timed lyrics</span></div>
+<div style="position:absolute;top:72px;bottom:38px;left:64%;width:2px;background:var(--cur)" aria-hidden="true"></div>
+</div>
+</div>
+</section>
+
+<div style="flex:1;display:flex;flex-wrap:wrap;gap:20px;padding:20px 16px">
+<div class="card" style="flex:1 1 420px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+<span class="lbl">Job log</span>
+<ol class="mono" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13px">
+<li style="display:flex;gap:12px"><span class="muted">00:00</span><span style="flex:1">Download audio</span><span>done · 4.1 MB</span></li>
+<li style="display:flex;gap:12px"><span class="muted">00:09</span><span style="flex:1;color:var(--cur);font-weight:700">Detect chords and beats</span><span style="color:var(--cur);font-weight:700">64%</span></li>
+<li style="display:flex;gap:12px" class="muted"><span>--:--</span><span style="flex:1">Fetch timed lyrics</span><span>queued</span></li>
+<li style="display:flex;gap:12px" class="muted"><span>--:--</span><span style="flex:1">Align lyrics to beats</span><span>queued</span></li>
+</ol>
+</div>
+<div class="card" style="flex:1 1 320px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+<span class="lbl">So far</span>
+<div style="display:flex;gap:24px;flex-wrap:wrap">
+<div><div class="mono" style="font-size:28px;font-weight:700">19</div><div class="muted" style="font-size:12px">chords found</div></div>
+<div><div class="mono" style="font-size:28px;font-weight:700;color:var(--unsure)">4</div><div class="muted" style="font-size:12px">unsure, queued for review</div></div>
+<div><div class="mono" style="font-size:28px;font-weight:700">F minor</div><div class="muted" style="font-size:12px">likely key</div></div>
+</div>
+<p class="muted" style="font-size:13px">When it finishes, the song opens in Edit mode on the first unsure chord.</p>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":760}}'>
+var SEQ = ['Fm','Db','Ab','Eb','Fm','Db','Ab','Eb','Fm','Dbmaj7','Ab','Eb7','Db','Ab','Eb','Fm','Db','Eb','Fm'];
+var UNS = [6, 9, 11, 17];
+var WAVE = []; for (var w = 0; w < 200; w++) WAVE.push(16 + 74 * Math.abs(Math.sin(w * 0.23 + 3) * Math.cos(w * 0.07)));
+class Component extends DCLogic {
+  renderVals() {
+    var blocks = [];
+    for (var k = 0; k < 30; k++) {
+      var done = k < SEQ.length, uns = UNS.indexOf(k) >= 0;
+      blocks.push({ c: done ? SEQ[k] : '', style: 'flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;border-radius:5px;overflow:hidden;color:var(--fg);' +
+        (!done ? 'border:1px dashed var(--line);background:transparent;' : uns ? 'border:1.5px dashed var(--unsure);background:var(--surface);' : 'border:1px solid var(--line2);background:var(--surface2);') });
+    }
+    return {
+      theme: this.props.theme ?? 'auto', blocks: blocks,
+      wave: WAVE.map(function(h){ return 'flex:1 1 0;min-width:0;height:' + h.toFixed(0) + '%;border-radius:1px;background:var(--fg);opacity:.8;'; })
+    };
+  }
+}
+</script>
+</body>
+</html>

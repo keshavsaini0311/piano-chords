@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sheet: import and progress</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="pc" data-theme="{{theme}}" style="min-height:760px;display:flex;flex-direction:column">
+<header style="display:flex;align-items:center;gap:10px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--surface)">
+<span class="mono" style="font-weight:700;font-size:15px">piano-chords</span>
+<span class="muted" style="font-size:13px">for Casio SA-51 · 32 keys</span>
+</header>
+<main style="flex:1;display:flex;justify-content:center;padding:48px 16px">
+<div style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<h1 style="font-size:32px;line-height:1.15;font-weight:700;letter-spacing:-0.01em">Learn a song</h1>
+<p class="muted" style="font-size:15px">Paste a YouTube link. You get chords over lyrics, a piano view and a player.</p>
+</div>
+<form style="display:flex;flex-wrap:wrap;gap:8px">
+<label for="yt" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">YouTube link</label>
+<input id="yt" class="field mono" style="flex:1 1 320px;font-size:14px" value="https://youtube.com/watch?v=[VIDEO-ID]">
+<button type="button" class="btn btn-p" style="min-height:48px;padding:0 20px">Get chords</button>
+</form>
+<div class="card" style="padding:20px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;gap:14px;align-items:center">
+<div style="width:96px;height:54px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;flex:none" aria-label="Video thumbnail placeholder"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="color:var(--muted)"><path d="M7 4v16l13-8z"></path></svg></div>
+<div style="flex:1;min-width:0"><div style="font-weight:600">Pal Pal</div><div class="muted" style="font-size:13px">3:15 · about 40 s left</div></div>
+<button class="btn">Cancel</button>
+</div>
+<ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px">
+<li style="display:flex;gap:12px;align-items:flex-start">
+<span style="width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--bg);display:grid;place-items:center;flex:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg></span>
+<div style="flex:1"><div style="font-weight:500">Downloading audio</div><div class="muted" style="font-size:13px">Done in 9 s</div></div>
+</li>
+<li style="display:flex;gap:12px;align-items:flex-start">
+<span style="width:24px;height:24px;border-radius:50%;border:2px solid var(--cur);display:grid;place-items:center;flex:none"><span style="width:8px;height:8px;border-radius:50%;background:var(--cur)"></span></span>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between"><span style="font-weight:600">Detecting chords</span><span class="mono" style="font-size:13px">64%</span></div>
+<div style="height:6px;border-radius:3px;background:var(--surface2)"><div style="width:64%;height:6px;border-radius:3px;background:var(--cur)"></div></div>
+<div class="muted" style="font-size:13px">Found so far: <span class="mono" style="color:var(--fg)">Fm Db Ab Eb Fm Db</span></div>
+</div>
+</li>
+<li style="display:flex;gap:12px;align-items:flex-start">
+<span style="width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);flex:none"></span>
+<div style="flex:1"><div style="font-weight:500" class="muted">Fetching timed lyrics</div></div>
+</li>
+<li style="display:flex;gap:12px;align-items:flex-start">
+<span style="width:24px;height:24px;border-radius:50%;border:2px solid var(--line2);flex:none"></span>
+<div style="flex:1"><div style="font-weight:500" class="muted">Ready to play</div></div>
+</li>
+</ol>
+<p class="muted" style="font-size:13px;padding-top:14px;border-top:1px solid var(--line)">If no timed lyrics are found, the song opens in the bar grid view with chords only.</p>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto"},"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'auto' }; }
+}
+</script>
+</body>
+</html>
