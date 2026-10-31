@@ -32,8 +32,8 @@ export function LyricsFinder() {
   }
 
   return (
-    <section className="panel" aria-label="Lyrics">
-      <h2 className="section-title">Lyrics {song.lyrics.length ? `(${song.lyrics.length} lines)` : ''}</h2>
+    <details className="panel more" open={!song.lyrics.length}>
+      <summary className="section-title">{song.lyrics.length ? `Lyrics (${song.lyrics.length} lines)` : 'Lyrics: none yet'}</summary>
       <form className="lyrics-form" onSubmit={search}>
         <div className="row">
           <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Song title" placeholder="Song title" />
@@ -42,6 +42,6 @@ export function LyricsFinder() {
         <button className="btn" disabled={busy || !title.trim()}>{busy ? 'Searching…' : song.lyrics.length ? 'Search again' : 'Search lyrics'}</button>
         {status && <p className="small muted" role="status">{status}</p>}
       </form>
-    </section>
+    </details>
   );
 }

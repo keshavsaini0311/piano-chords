@@ -5,7 +5,7 @@ import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { formatTime, useSong } from '../studio/display';
 
-const SPEEDS = [0.5, 0.75, 1];
+const SPEEDS = [1, 0.75, 0.5];
 
 export function togglePlay() {
   const { playing, setPlaying } = usePlaybackStore.getState();
@@ -36,7 +36,7 @@ export function PlayerBar() {
   };
   return (
     <footer className="bar player-bar">
-      <button className="play-button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+      <button className="play-button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} title="Space">
         {playing ? '❚❚' : '▶'}
       </button>
       <span className="time">
@@ -52,17 +52,12 @@ export function PlayerBar() {
         onChange={(e) => player.seek(Number(e.target.value))}
         aria-label="Position"
       />
-      <button className="btn" aria-pressed={loop !== null} onClick={() => toggleLoop(song.chords)}>
+      <button className="btn" aria-pressed={loop !== null} onClick={() => toggleLoop(song.chords)} title="L">
         {loop ? `Looping ${formatTime(loop.start)} to ${formatTime(loop.end)}` : 'Loop this change'}
       </button>
-      <div className="seg" role="group" aria-label="Speed">
-        {SPEEDS.map((s) => (
-          <button key={s} aria-pressed={rate === s} onClick={() => setRate(s)}>
-            {s * 100}%
-          </button>
-        ))}
-      </div>
-      <span className="muted hints">Space play/pause, ← → previous/next chord, [ ] key, L loop, E edit</span>
+      <button className="btn" onClick={() => setRate(SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length])} title="Tap to change speed (pitch stays the same)">
+        Speed {rate * 100}%
+      </button>
     </footer>
   );
 }

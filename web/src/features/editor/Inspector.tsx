@@ -53,6 +53,9 @@ export function Inspector() {
         <span className="muted small">{(event.end - event.start).toFixed(1)}s long</span>
       </div>
       <ChordName className="inspector-chord" label={formatChord(shown, accidentals)} />
+      {label(event.chord) !== formatChord(shown, accidentals) && (
+        <p className="muted small">Shown as {label(event.chord)} while Simple chords is on.</p>
+      )}
       {unsure && <p className="inspector-note">Very short for this tempo, so it may be a detection blip. Listen, then fix it or mark it checked.</p>}
       {voicings[index]?.length > 0 && <Diagram range={profile.keyRange} now={voicings[index]} showNoteNames={profile.showNoteNames} />}
 
@@ -85,19 +88,24 @@ export function Inspector() {
       <div className="button-row" role="group" aria-label="Timing">
         <button className="btn" onClick={() => apply((s) => moveChordStart(s, event.id, event.start - NUDGE_SEC))} disabled={index === 0}>Start earlier</button>
         <button className="btn" onClick={() => apply((s) => moveChordStart(s, event.id, event.start + NUDGE_SEC))}>Start later</button>
-        <button className="btn" onClick={() => apply((s) => splitChord(s, event.id, usePlaybackStore.getState().time))} disabled={!canSplit} title="Move the playhead inside this chord first">
-          Split at playhead
-        </button>
-        <button className="btn" onClick={() => apply((s) => mergeWithNext(s, event.id))} disabled={index === song.chords.length - 1}>Merge with next</button>
-        <button className="btn" onClick={() => apply((s) => deleteChord(s, event.id))} disabled={song.chords.length < 2}>Remove</button>
-        {unsure && <button className="btn" onClick={() => apply((s) => confirmChord(s, event.id))}>Mark as checked</button>}
+        {unsure && <button className="btn btn-primary" onClick={() => apply((s) => confirmChord(s, event.id))}>Sounds right</button>}
       </div>
-      {song.lyrics.length > 0 && (
-        <div className="button-row" role="group" aria-label="Position over the lyrics">
-          <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, -1))}>Over the previous word</button>
-          <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, 1))}>Over the next word</button>
+      <details className="more">
+        <summary>More changes</summary>
+        <div className="button-row">
+          <button className="btn" onClick={() => apply((s) => splitChord(s, event.id, usePlaybackStore.getState().time))} disabled={!canSplit} title="Move the playhead inside this chord first">
+            Split at playhead
+          </button>
+          <button className="btn" onClick={() => apply((s) => mergeWithNext(s, event.id))} disabled={index === song.chords.length - 1}>Merge with next</button>
+          <button className="btn" onClick={() => apply((s) => deleteChord(s, event.id))} disabled={song.chords.length < 2}>Remove</button>
+          {song.lyrics.length > 0 && (
+            <>
+              <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, -1))}>Over the previous word</button>
+              <button className="btn" onClick={() => apply((s) => moveChordToWord(s, event.id, 1))}>Over the next word</button>
+            </>
+          )}
         </div>
-      )}
+      </details>
     </section>
   );
 }

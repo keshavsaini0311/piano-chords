@@ -48,7 +48,9 @@ export function ChartPreview() {
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    if (mode === 'play') rowRefs.current[currentRow]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (mode !== 'play') return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    rowRefs.current[currentRow]?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
   }, [currentRow, mode]);
 
   const chip = (event: ChordEvent) => (
@@ -65,7 +67,7 @@ export function ChartPreview() {
   return (
     <div className="chart">
       {rows.map((row, i) => (
-        <div key={row.key} ref={(el) => void (rowRefs.current[i] = el)} className={i === currentRow ? 'chart-row current' : 'chart-row'}>
+        <div key={row.key} ref={(el) => void (rowRefs.current[i] = el)} className={`chart-row${i === currentRow ? ' current' : i < currentRow ? ' past' : ''}`}>
           {row.kind === 'instrumental' ? (
             <div className="lead-sheet">{row.chords.map((c) => chip(c))}</div>
           ) : (

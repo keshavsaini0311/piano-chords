@@ -35,7 +35,7 @@ export function StudioScreen({ songId }: { songId: string }) {
   return (
     <div className="studio" data-mode={mode}>
       <StudioHeader />
-      <Timeline />
+      {mode === 'edit' && <Timeline />}
       {mode === 'play' && (
         <section className="stand" aria-label="What to play">
           <NowNextCard />
