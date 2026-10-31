@@ -1,0 +1,51 @@
+/* piano-chords tokens. Light by default, dark follows the system.
+   Two meaningful accents: --now (the lit key you play) and --next (what's coming). --edit marks editing. */
+.pc {
+  --paper: #F2F3F0; --surface: #FFFFFF; --surface2: #E8EAE6; --line: rgba(27,30,34,.12); --line2: rgba(27,30,34,.24);
+  --ink: #1B1E22; --muted: #646B73;
+  --now: #D9480F; --on-now: #FFFFFF; --now-soft: rgba(217,72,15,.10);
+  --next: #2F6FEB; --next-soft: rgba(47,111,235,.14);
+  --edit: #6D47E0; --edit-soft: rgba(109,71,224,.10); --unsure: #B7791F;
+  --bar: #1E2227; --bar-ink: #EEF0F2; --bar-muted: #A9B0B8;
+  --ivory: #FFFFFF; --ebony: #1E2126; --key-line: rgba(0,0,0,.25);
+  --font-ui: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-chord: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
+  background: var(--paper); color: var(--ink);
+  font-family: var(--font-ui); font-size: 15px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: dark) {
+  .pc[data-theme="auto"] {
+    --paper: #15181C; --surface: #1C2025; --surface2: #262B31; --line: rgba(255,255,255,.10); --line2: rgba(255,255,255,.20);
+    --ink: #E6E8EB; --muted: #9AA2AB;
+    --now: #FF8A3D; --on-now: #1C0D02; --now-soft: rgba(255,138,61,.13);
+    --next: #7EA6FF; --next-soft: rgba(126,166,255,.16);
+    --edit: #A88BFA; --edit-soft: rgba(168,139,250,.12); --unsure: #E8B04B;
+    --bar: #0F1216; --bar-ink: #E6E8EB; --bar-muted: #8E969F;
+    --ivory: #E9EAE6; --ebony: #0E1013; --key-line: rgba(0,0,0,.55);
+  }
+}
+.pc *, .pc *::before, .pc *::after { box-sizing: border-box; }
+.pc h1, .pc h2, .pc h3, .pc p { margin: 0; }
+.pc button { font: inherit; color: inherit; cursor: pointer; }
+.pc :focus-visible { outline: 2px solid var(--next); outline-offset: 2px; }
+.pc .muted { color: var(--muted); }
+.pc .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line2); background: var(--surface); font-weight: 500; font-size: 14px; white-space: nowrap; }
+.pc .btn:hover:not(:disabled) { background: var(--surface2); }
+.pc .btn-primary { background: var(--ink); color: var(--paper); border-color: transparent; }
+.pc .btn-primary:hover:not(:disabled) { background: var(--ink); opacity: .88; }
+.pc .ibtn { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px; border: 1px solid transparent; background: transparent; }
+.pc .ibtn:hover:not(:disabled) { background: var(--surface2); }
+.pc .seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface2); gap: 2px; }
+.pc .seg button { border: 0; background: transparent; min-height: 34px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.pc .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.pc .field { min-height: 46px; width: 100%; border: 1px solid var(--line2); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 14px; font: inherit; }
+.pc .bar { background: var(--bar); color: var(--bar-ink); }
+.pc .bar .muted { color: var(--bar-muted); }
+.pc .bar .btn { background: transparent; border-color: rgba(255,255,255,.2); color: var(--bar-ink); }
+.pc .bar .btn:hover { background: rgba(255,255,255,.08); }
+.pc .bar .btn[aria-pressed="true"] { border-color: var(--now); color: var(--now); }
+.pc .bar .seg { background: rgba(255,255,255,.08); }
+.pc .bar .seg button { color: var(--bar-muted); }
+.pc .bar .seg button[aria-pressed="true"] { background: rgba(255,255,255,.16); color: var(--bar-ink); box-shadow: none; }
+.chord-name { font-family: var(--font-chord); font-weight: 700; font-optical-sizing: auto; letter-spacing: -.01em; }

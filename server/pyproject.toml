@@ -1,0 +1,22 @@
+[project]
+name = "piano-chords-server"
+version = "0.1.0"
+description = "Local server: YouTube audio, chord detection, lyrics"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "imageio-ffmpeg>=0.7.0",
+    "librosa>=1.0.0",
+    "lv-chordia>=1.1.0",
+    "uvicorn>=0.54.0",
+    "yt-dlp>=2026.10.26",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
