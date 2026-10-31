@@ -7,6 +7,7 @@ import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { subscribeAutosave, useSongStore } from '../../state/songStore';
 import { useViewStore } from '../../state/viewStore';
+import { ChartPreview } from '../chart/ChartPreview';
 import { NowNextCard } from '../coach/NowNextCard';
 import { PianoStrip } from '../coach/PianoStrip';
 import { PlayerBar } from '../player/PlayerBar';
@@ -59,6 +60,7 @@ export function StudioScreen({ songId }: { songId: string }) {
       <div className="studio-body">
         <main className="studio-main">
           <span className="lbl">Chart</span>
+          <ChartPreview />
         </main>
         <aside className="studio-aside">
           <NowNextCard />

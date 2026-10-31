@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { openLibrary } from '../../App';
 import { useSongStore } from '../../state/songStore';
 import { useSongView, useViewStore } from '../../state/viewStore';
 import { UNSURE_BELOW } from '../timeline/Timeline';
+import { KeyMenu } from '../transpose/KeyMenu';
 import { useDisplay, useSong } from './display';
 
 const SAVE_LABEL = { saved: 'saved', saving: 'saving…', error: 'not saved, retrying on next change' };
@@ -12,6 +14,7 @@ export function StudioHeader() {
   const { semitones } = useSongView(song.id);
   const { mode, setMode, setSemitones, profile, updateProfile } = useViewStore();
   const { currentKey, originalKey } = useDisplay();
+  const [menuOpen, setMenuOpen] = useState(false);
   const unsure = song.chords.filter((c) => (c.confidence ?? 1) < UNSURE_BELOW).length;
   return (
     <header className="studio-header">
@@ -31,7 +34,10 @@ export function StudioHeader() {
         <button className="ibtn" onClick={() => setSemitones(song.id, semitones - 1)} aria-label="Transpose down">−</button>
         <span className="mono key-name">{currentKey}</span>
         <button className="ibtn" onClick={() => setSemitones(song.id, semitones + 1)} aria-label="Transpose up">+</button>
-        <span className="muted small key-from">{semitones ? `from ${originalKey} (${semitones > 0 ? '+' : ''}${semitones})` : 'original'}</span>
+        <button className="muted small key-from" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}>
+          {semitones ? `from ${originalKey} (${semitones > 0 ? '+' : ''}${semitones})` : 'original'} · easier keys
+        </button>
+        {menuOpen && <KeyMenu onClose={() => setMenuOpen(false)} />}
       </div>
       <div className="seg" role="group" aria-label="Difficulty">
         <button aria-pressed={profile.difficulty === 'easy'} onClick={() => updateProfile({ difficulty: 'easy' })}>Easy</button>
