@@ -83,10 +83,63 @@ def refine_boundaries(segments: list[Segment], notes: np.ndarray, times: np.ndar
     return out
 
 
+LONG_SEGMENT_BEATS = 8  # a chord held longer than two bars gets a second look
+WINDOW_BEATS = 2  # re-checked half a bar at a time
+SWITCH_MARGIN = 0.05  # another chord must fit this much better before it replaces the detected one
+MIN_FIT_FOR_SILENCE = 0.5  # how well a chord must fit to replace "no chord"
+QUIET_RATIO = 0.2  # below this share of the song's typical loudness, silence is real
+
+
+def fill_long_segments(segments: list[Segment], notes: np.ndarray, loudness: np.ndarray, times: np.ndarray, beats: list[float]) -> list[Segment]:
+    """In sparse arrangements the detector can hold one chord for a whole verse or call a played intro
+    silent (measured on Shape of You: 28 s of F#m, a 16.6 s silent intro over a looping riff). Long
+    stretches and sounding "no chord" stretches are re-checked half a bar at a time against the song's
+    own main chords; a window changes only when another chord clearly fits better."""
+    gaps = np.diff(beats)
+    beat = float(statistics.median(gaps)) if len(gaps) else 0.5
+    seconds: dict[str, float] = {}
+    for seg in segments:
+        if seg.label != "N.C.":
+            seconds[seg.label] = seconds.get(seg.label, 0) + seg.end - seg.start
+    vocabulary = sorted(seconds, key=seconds.get, reverse=True)[:6]
+    quiet = QUIET_RATIO * float(np.median(loudness)) if len(loudness) else 0.0
+    out: list[Segment] = []
+    for seg in segments:
+        silent_label = seg.label == "N.C."
+        too_long = seg.end - seg.start > (4 if silent_label else LONG_SEGMENT_BEATS) * beat
+        if not vocabulary or not too_long:
+            out.append(replace(seg))
+            continue
+        inside = [b for b in beats if seg.start + 0.05 < b < seg.end - 0.05][WINDOW_BEATS - 1 :: WINDOW_BEATS]
+        edges = [seg.start, *inside, seg.end]
+        for start, end in zip(edges, edges[1:]):
+            frames = (times >= start) & (times < end)
+            label = seg.label
+            if frames.any() and loudness[frames].mean() < quiet:
+                label = "N.C."
+            elif frames.any():
+                mean = notes[:, frames].mean(axis=1, keepdims=True)
+                fits = {chord: float(_fit(mean, chord_profile(chord))[0]) for chord in vocabulary}
+                best = max(fits, key=fits.get)
+                current = 0.0 if silent_label else float(_fit(mean, chord_profile(seg.label))[0])
+                if (silent_label and fits[best] > MIN_FIT_FOR_SILENCE) or (not silent_label and fits[best] > current + SWITCH_MARGIN):
+                    label = best
+            out.append(Segment(start, end, label, None if label != seg.label else seg.confidence))
+    merged: list[Segment] = []
+    for seg in out:  # join neighbours that ended up with the same chord
+        if merged and merged[-1].label == seg.label:
+            merged[-1].end = seg.end
+        else:
+            merged.append(seg)
+    return merged
+
+
 def refine_timing(audio: Path, segments: list[Segment], beats: list[float]) -> list[Segment]:
     import librosa
 
     samples, rate = librosa.load(str(audio), sr=22050, mono=True)
     notes = librosa.feature.chroma_cqt(y=samples, sr=rate, hop_length=512)
+    loudness = librosa.feature.rms(y=samples, hop_length=512)[0][: notes.shape[1]]
     times = librosa.frames_to_time(np.arange(notes.shape[1]), sr=rate, hop_length=512)
-    return refine_boundaries(segments, notes, times, beats)
+    filled = fill_long_segments(segments, notes, loudness, times, beats)
+    return refine_boundaries(filled, notes, times, beats)
