@@ -4,6 +4,7 @@ import os
 from dataclasses import asdict
 from pathlib import Path
 
+import httpx
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -29,6 +30,12 @@ class LyricsRequest(BaseModel):
 
 class SettingValue(BaseModel):
     value: str
+
+
+class Playlist(BaseModel):
+    id: str
+    name: str
+    songIds: list[str]
 
 
 def create_app(deps: Deps | None = None) -> FastAPI:
@@ -90,6 +97,39 @@ def create_app(deps: Deps | None = None) -> FastAPI:
         song = existing_song(song_id)
         lines = deps.lyrics.find(request.title, request.artist, song["duration"]) or []
         return {"lyrics": [vars(line) for line in lines]}
+
+    @app.get("/api/songs/{song_id}/cover")
+    def get_cover(song_id: str):
+        """YouTube's thumbnail, fetched once and kept in the song folder (works offline, moves with the data)."""
+        existing_song(song_id)
+        cover = store.song_dir(song_id) / "cover.jpg"
+        if not cover.exists():
+            try:
+                image = httpx.get(f"https://i.ytimg.com/vi/{song_id}/mqdefault.jpg", timeout=10)
+                image.raise_for_status()
+                cover.write_bytes(image.content)
+            except httpx.HTTPError:
+                raise HTTPException(404, "No cover")
+        return FileResponse(cover, media_type="image/jpeg")
+
+    @app.delete("/api/songs/{song_id}")
+    def delete_song(song_id: str):
+        try:
+            removed = store.delete_song(song_id)
+        except ValueError:
+            removed = False
+        if not removed:
+            raise HTTPException(404, "Song not found")
+        return {"ok": True}
+
+    @app.get("/api/playlists")
+    def get_playlists():
+        return store.read_playlists()
+
+    @app.put("/api/playlists")
+    def put_playlists(playlists: list[Playlist]):
+        store.write_playlists([p.model_dump() for p in playlists])
+        return {"ok": True}
 
     @app.get("/api/settings/{name}")
     def get_setting(name: str):

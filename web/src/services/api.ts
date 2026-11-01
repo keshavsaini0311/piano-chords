@@ -1,13 +1,14 @@
 // The only code that talks to the server. Wire format uses label strings; the app uses Chord objects.
 // Converting here keeps every other module free of the server's shape.
 import { accidentalsForKey, estimateKey, formatChord, parseChord } from '../domain/music';
+import type { Playlist } from '../domain/playlists';
 import type { LyricLine, Song } from '../domain/song';
 
 export type WireChord = { id: string; start: number; end: number; label: string; confidence?: number; alternatives?: string[] };
 export type WireSong = Omit<Song, 'chords' | 'originalKey'> & { chords: WireChord[]; importedAt?: number };
 export type JobState = 'queued' | 'running' | 'done' | 'done_without_lyrics' | 'failed';
 export type Job = { id: string; song_id: string; state: JobState; stage: string | null; error: string | null };
-export type SongSummary = { id: string; title: string; artist: string; duration: number };
+export type SongSummary = { id: string; title: string; artist: string; duration: number; chordTime: Record<string, number>; hasLyrics: boolean };
 
 export function fromWire(wire: WireSong): Song {
   const chords = wire.chords.map(({ label, alternatives, ...rest }) => ({
@@ -52,6 +53,10 @@ export const api = {
   searchLyrics: async (id: string, title: string, artist: string) =>
     (await request<{ lyrics: LyricLine[] }>(`/api/songs/${id}/lyrics`, { method: 'POST', body: JSON.stringify({ title, artist }) })).lyrics,
   audioUrl: (id: string) => `/api/songs/${id}/audio`,
+  coverUrl: (id: string) => `/api/songs/${id}/cover`,
+  deleteSong: (id: string) => request(`/api/songs/${id}`, { method: 'DELETE' }),
+  listPlaylists: () => request<Playlist[]>('/api/playlists'),
+  savePlaylists: (playlists: Playlist[]) => request('/api/playlists', { method: 'PUT', body: JSON.stringify(playlists) }),
   getSetting: async (name: string) => (await request<{ value: string | null }>(`/api/settings/${encodeURIComponent(name)}`)).value,
   saveSetting: async (name: string, value: string) => {
     await request(`/api/settings/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify({ value }) });

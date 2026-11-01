@@ -8,31 +8,6 @@ body { background: #F2F3F0; }
 .pc button:disabled { opacity: .45; cursor: default; }
 .section-title { font-size: 13px; font-weight: 600; color: var(--muted); }
 
-/* ---------- Import ---------- */
-.import { max-width: 640px; margin: 0 auto; padding: 64px 16px 48px; display: flex; flex-direction: column; gap: 32px; }
-.import-head h1 { font-family: var(--font-chord); font-size: 44px; line-height: 1; letter-spacing: -.03em; }
-.import-head p { margin-top: 10px; max-width: 46ch; color: var(--muted); }
-.import-form { display: flex; flex-direction: column; gap: 8px; }
-.import-form label { font-weight: 600; }
-.import-form .row { display: flex; gap: 8px; }
-.import-form .row .field { flex: 1; }
-.progress { list-style: none; margin: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
-.progress li { display: flex; align-items: center; gap: 12px; color: var(--muted); }
-.progress li[data-status="active"], .progress li[data-status="done"] { color: var(--ink); }
-.progress-mark { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line2); display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; }
-li[data-status="done"] .progress-mark { background: var(--ink); color: var(--paper); border-color: transparent; }
-li[data-status="active"] .progress-mark { border-color: var(--now); border-top-color: transparent; animation: spin 1s linear infinite; }
-li[data-status="failed"] .progress-mark { background: var(--now); color: var(--on-now); border-color: transparent; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { li[data-status="active"] .progress-mark { animation: none; } }
-.progress-note { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 4px; }
-.library { display: flex; flex-direction: column; gap: 10px; }
-.library h2 { font-size: 15px; font-weight: 600; }
-.library ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.library-item { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; }
-.library-item:hover .library-title { text-decoration: underline; text-underline-offset: 3px; }
-.library-title { font-family: var(--font-chord); font-size: 20px; font-weight: 700; }
-
 /* ---------- Studio frame ---------- */
 .studio { min-height: 100vh; display: flex; flex-direction: column; }
 .studio-loading, .studio-error { padding: 64px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
@@ -251,3 +226,52 @@ li[data-status="failed"] .progress-mark { background: var(--now); color: var(--o
 .key-black { background: linear-gradient(to bottom, #2A2E34, var(--ebony) 60%); box-shadow: 0 3px 4px rgba(0,0,0,.35), inset 0 -4px 0 rgba(255,255,255,.06); }
 .key-white.key-now, .key-black.key-now { background: linear-gradient(to bottom, var(--now) 75%, color-mix(in srgb, var(--now) 80%, black)); }
 .keyboard-whites { border-radius: 4px 4px 10px 10px; }
+
+/* ---------- Library ---------- */
+.library { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; display: flex; flex-direction: column; gap: 22px; }
+.library-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px 32px; }
+.library-head h1 { font-family: var(--font-chord); font-size: 30px; letter-spacing: -.03em; line-height: 46px; }
+.add-song { flex: 1 1 420px; display: flex; flex-direction: column; gap: 10px; }
+.add-song-form { display: flex; gap: 8px; }
+.add-song-form .field { flex: 1; }
+.progress { list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.progress li { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.progress li[data-status="active"], .progress li[data-status="done"] { color: var(--ink); }
+.progress-mark { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line2); display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; }
+li[data-status="done"] .progress-mark { background: var(--ink); color: var(--paper); border-color: transparent; }
+li[data-status="active"] .progress-mark { border-color: var(--now); border-top-color: transparent; animation: spin 1s linear infinite; }
+li[data-status="failed"] .progress-mark { background: var(--now); color: var(--on-now); border-color: transparent; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { li[data-status="active"] .progress-mark { animation: none; } }
+.progress-note { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.library-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.library-tabs > button { min-height: 36px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 999px; background: none; font-size: 14px; font-weight: 500; }
+.library-tabs > button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.library-tabs > button[aria-pressed="true"] .muted { color: inherit; opacity: .6; }
+.library-tabs .new-playlist { border-style: dashed; color: var(--muted); }
+.pc .library-search { margin-left: auto; width: 220px; min-height: 36px; border-radius: 999px; }
+.song-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px 18px; }
+.song-card { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.song-cover { position: relative; aspect-ratio: 16 / 9; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, var(--surface2), var(--surface)); }
+.song-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
+.song-cover:hover img { transform: scale(1.03); }
+.song-duration { position: absolute; right: 8px; bottom: 8px; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,.7); color: #fff; font-size: 12px; }
+.song-meta { display: flex; flex-direction: column; gap: 3px; padding-right: 28px; }
+.song-title { border: 0; background: none; padding: 0; text-align: left; font-family: var(--font-chord); font-weight: 700; font-size: 17px; line-height: 1.2; }
+.song-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.song-keys .chord-name { font-size: 13px; }
+.song-chords { display: flex; gap: 10px; font-size: 13px; }
+.song-menu-button { position: absolute; right: -6px; bottom: 30px; }
+.song-menu { position: absolute; right: 0; bottom: 70px; z-index: 5; min-width: 220px; padding: 6px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.song-menu button { border: 0; background: none; text-align: left; padding: 9px 10px; border-radius: 8px; font-size: 14px; }
+.song-menu button:hover:not(:disabled) { background: var(--surface2); }
+.song-menu .danger { color: var(--now); }
+.playlist { display: flex; flex-direction: column; gap: 16px; }
+.playlist-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.playlist-name { flex: 1 1 260px; border: 0; background: none; color: var(--ink); font-family: var(--font-chord); font-size: 28px; font-weight: 700; padding: 4px 0; border-bottom: 1px dashed transparent; }
+.playlist-name:hover, .playlist-name:focus { border-bottom-color: var(--line2); outline: none; }
+.playlist-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.playlist-rows li { display: grid; grid-template-columns: 24px 64px 1fr auto auto; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.playlist-rows img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; }
+@media (max-width: 640px) { .playlist-rows li { grid-template-columns: 24px 1fr auto; } .playlist-rows img, .playlist-rows li > .small { display: none; } .library-search { width: 100%; margin-left: 0; } }
+.playlist-now { display: flex; align-items: center; gap: 10px; }
