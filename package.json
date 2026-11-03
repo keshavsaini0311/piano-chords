@@ -1,0 +1,13 @@
+{
+  "name": "piano-chords",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": "cd server && uv run uvicorn app.main:app --port 8000",
+    "dev:web": "cd web && npm run dev",
+    "install:all": "npm install && cd web && npm install && cd ../server && uv sync"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
