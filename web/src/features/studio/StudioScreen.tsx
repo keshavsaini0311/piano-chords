@@ -1,17 +1,16 @@
 // The studio: loads the song and audio, runs the clock and autosave, and lays out the panels.
-// Play mode puts the music stand (now/next + keys) up top; edit mode swaps in the editor panel.
+// The timeline + edit bar sit on top; the chart scrolls underneath.
 import { useEffect, useRef, useState } from 'react';
 import { openLibrary, openSong } from '../../App';
 import { nextSong, type Playlist } from '../../domain/playlists';
 import { api } from '../../services/api';
 import { useSongStore } from '../../state/songStore';
 import { openStudio, requestAutoplay } from '../../state/studioSession';
-import { useViewStore } from '../../state/viewStore';
 import { ChartPreview } from '../chart/ChartPreview';
-import { NowNextCard } from '../coach/NowNextCard';
-import { PianoStrip } from '../coach/PianoStrip';
 import { LyricsFinder } from '../editor/LyricsFinder';
 import { EditBar } from '../editor/EditBar';
+import { PracticeStrip } from '../judge/Practice';
+import { useJudgeStore } from '../../state/judgeStore';
 import { PlayerBar } from '../player/PlayerBar';
 import { Timeline } from '../timeline/Timeline';
 import { StudioHeader } from './StudioHeader';
@@ -19,7 +18,7 @@ import { useShortcuts } from './useShortcuts';
 
 export function StudioScreen({ songId, playlistId }: { songId: string; playlistId: string | null }) {
   const song = useSongStore((s) => (s.song?.id === songId ? s.song : null));
-  const mode = useViewStore((s) => s.mode);
+  const listening = useJudgeStore((s) => s.listening);
   const [error, setError] = useState<string | null>(null);
   useShortcuts();
 
@@ -45,22 +44,12 @@ export function StudioScreen({ songId, playlistId }: { songId: string; playlistI
     );
   if (!song) return <main className="studio-loading muted">Opening the song…</main>;
   return (
-    <div className="studio" data-mode={mode}>
+    <div className="studio">
       <div className="studio-top">
         <StudioHeader playlist={playlist} songId={songId} onNext={next ? () => goNext.current() : null} />
-        {mode === 'edit' ? (
-          <>
-            <Timeline />
-            <EditBar />
-          </>
-        ) : (
-          <section className="stand" aria-label="What to play">
-            <NowNextCard />
-            <div className="stand-keys">
-              <PianoStrip />
-            </div>
-          </section>
-        )}
+        <Timeline />
+        <EditBar />
+        {listening && <PracticeStrip />}
       </div>
       <div className="studio-body">
         <main className="studio-main">

@@ -1,6 +1,7 @@
 // One chord in the chart. Hover or focus shows its keys; click jumps there and selects it.
 import { memo, useState } from 'react';
 import { noteName, toPitchClass } from '../../domain/music';
+import type { Grade } from '../../domain/judge';
 import type { ChordEvent } from '../../domain/song';
 import type { Voicing } from '../../domain/voicing';
 import { player } from '../../services/player';
@@ -9,14 +10,14 @@ import { ChordName } from '../../ui/ChordName';
 import { diagrams } from '../instrument/diagrams';
 import { isUnsure } from '../../domain/timing';
 
-type Props = { event: ChordEvent; label: string; voicing: Voicing; active: boolean; selected: boolean };
+type Props = { event: ChordEvent; label: string; voicing: Voicing; active: boolean; selected: boolean; grade?: Grade };
 
-export const ChordChip = memo(function ChordChip({ event, label, voicing, active, selected }: Props) {
+export const ChordChip = memo(function ChordChip({ event, label, voicing, active, selected, grade }: Props) {
   const [open, setOpen] = useState(false);
   const profile = useViewStore((s) => s.profile);
   const selectChord = useViewStore((s) => s.selectChord);
   const Diagram = diagrams[profile.instrumentId];
-  const className = ['chord-chip', active && 'active', selected && 'selected', isUnsure(event) && 'unsure'].filter(Boolean).join(' ');
+  const className = ['chord-chip', active && 'active', selected && 'selected', isUnsure(event) && 'unsure', grade && `graded-${grade}`].filter(Boolean).join(' ');
   return (
     <span className="chord-chip-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <button

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { displayChord, simplifyChord, transposeChord, transposeKey, type Chord, type DisplaySettings } from '../../domain/music';
 import type { Song } from '../../domain/song';
-import { activeChordIndex, beatsUntilNextChord } from '../../domain/timing';
+import { activeChordIndex } from '../../domain/timing';
 import { voicers, type Voicing } from '../../domain/voicing';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
@@ -48,11 +48,6 @@ export function useVoicings(): Voicing[] {
 export function useActiveIndex(): number {
   const chords = useSong().chords;
   return usePlaybackStore((s) => activeChordIndex(chords, s.time));
-}
-
-export function useBeatsToNext(): number | null {
-  const { chords, beats } = useSong();
-  return usePlaybackStore((s) => beatsUntilNextChord(chords, beats, s.time));
 }
 
 export const formatTime = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;

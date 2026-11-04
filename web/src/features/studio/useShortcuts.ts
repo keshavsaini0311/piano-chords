@@ -4,6 +4,7 @@ import { activeChordIndex } from '../../domain/timing';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
+import { useJudgeStore } from '../../state/judgeStore';
 import { useViewStore } from '../../state/viewStore';
 import { stepReview } from '../editor/EditBar';
 import { isTypingTarget } from './shortcutTarget';
@@ -35,10 +36,10 @@ export function useShortcuts() {
         '[': () => view.setSemitones(song.id, semitones - 1),
         ']': () => view.setSemitones(song.id, semitones + 1),
         l: () => toggleLoop(song.chords),
-        e: () => view.setMode(view.mode === 'play' ? 'edit' : 'play'),
+        m: () => useJudgeStore.getState().toggle(),
         Escape: () => view.selectChord(null),
-        j: () => view.mode === 'edit' && stepReview(song, 1),
-        k: () => view.mode === 'edit' && stepReview(song, -1),
+        j: () => stepReview(song, 1),
+        k: () => stepReview(song, -1),
       };
       const action = actions[e.key];
       if (action) {
