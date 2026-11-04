@@ -1,5 +1,6 @@
-// Microphone → pitch-class energies. Browser voice processing is off: it is tuned for speech and
-// eats sustained piano tones.
+// Microphone → pitch-class energies. Echo cancellation is on: the browser subtracts what this page
+// is playing, so the song through speakers isn't graded. Noise suppression and auto gain are off:
+// they are tuned for speech and eat sustained piano tones.
 import { chromaFromSpectrum, type Chroma } from '../domain/judge';
 
 // You count as playing when the loudest note-range bin is GATE_DB over the room's floor (which
@@ -8,7 +9,7 @@ import { chromaFromSpectrum, type Chroma } from '../domain/judge';
 // ponytail: calibration knobs. Raise MIN_DB if room noise gets graded, lower it if soft playing reads as silence.
 const MIN_DB = -65;
 const GATE_DB = 12;
-const FLOOR_RISE_DB = 0.3; // per read (~3 dB/s at 10 reads/s)
+const FLOOR_RISE_DB = 0.15; // per read (~3 dB/s at 20 reads/s)
 const BAND_HZ = [75, 2100]; // where piano fundamentals live; rumble and hiss are outside
 const METER_DB = [-90, -30]; // meter range
 
@@ -17,12 +18,12 @@ export type Mic = { read(): MicReading; close(): void };
 
 export async function openMic(): Promise<Mic> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false },
   });
   const ctx = new AudioContext();
   const analyser = ctx.createAnalyser();
-  analyser.fftSize = 16384; // ~3 Hz bins: semitones stay apart down to about D2
-  analyser.smoothingTimeConstant = 0.7;
+  analyser.fftSize = 8192; // 170 ms window: fast to react, semitones still apart down to about G2
+  analyser.smoothingTimeConstant = 0.4;
   ctx.createMediaStreamSource(stream).connect(analyser);
   const db = new Float32Array(analyser.frequencyBinCount);
   let floor = METER_DB[1];

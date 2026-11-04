@@ -8,7 +8,7 @@ import { useJudgeStore } from '../../state/judgeStore';
 import { ChordName } from '../../ui/ChordName';
 import { useActiveIndex, useDisplay, useSong } from '../studio/display';
 
-const TICK_MS = 100;
+const TICK_MS = 50;
 
 const MicIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -97,13 +97,15 @@ export function PracticeStrip() {
           </ul>
           <p className={`practice-verdict ${current?.grade ?? ''}`} aria-live="polite">
             {!current && <span className="muted">Play it on your piano…</span>}
-            {current?.grade === 'right' && <>✓ Got it</>}
-            {current?.grade === 'rightish' && <>≈ Close: you played {name(current.heard)}. Right root, the chart wants {name(target)}</>}
+            {current?.grade === 'right' && (
+              <>
+                ✓ Got it{formatChord(current.heard, accidentals) !== formatChord(target, accidentals) && <span className="muted"> ({name(current.heard)})</span>}
+              </>
+            )}
             {current?.grade === 'off' && <>✗ Not quite: sounds like {name(current.heard)}</>}
           </p>
         </>
       )}
-      <span className="practice-tip muted small">Headphones help: then I only hear you.</span>
       <button className="btn" onClick={toggle}>Stop</button>
     </section>
   );

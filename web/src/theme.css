@@ -1,12 +1,12 @@
 /* piano-chords tokens. Light by default, dark follows the system.
-   Grades: --right / --close / --wrong. Two meaningful accents: --now (the lit key you play) and --next (what's coming). --edit marks editing. */
+   Grades: --right / --wrong. Two meaningful accents: --now (the lit key you play) and --next (what's coming). --edit marks editing. */
 .pc {
   --paper: #F2F3F0; --surface: #FFFFFF; --surface2: #E8EAE6; --line: rgba(27,30,34,.12); --line2: rgba(27,30,34,.24);
   --ink: #1B1E22; --muted: #646B73;
   --now: #D9480F; --on-now: #FFFFFF; --now-soft: rgba(217,72,15,.10);
   --next: #2F6FEB; --next-soft: rgba(47,111,235,.14);
   --edit: #6D47E0; --edit-soft: rgba(109,71,224,.10); --unsure: #B7791F;
-  --right: #2B8A3E; --right-soft: rgba(43,138,62,.12); --close: #B7791F; --wrong: #C92A2A; --wrong-soft: rgba(201,42,42,.10);
+  --right: #2B8A3E; --right-soft: rgba(43,138,62,.12); --wrong: #C92A2A; --wrong-soft: rgba(201,42,42,.10);
   --bar: #1E2227; --bar-ink: #EEF0F2; --bar-muted: #A9B0B8;
   --ivory: #FFFFFF; --ebony: #1E2126; --key-line: rgba(0,0,0,.25);
   --font-ui: 'Instrument Sans', system-ui, -apple-system, sans-serif;
@@ -22,7 +22,7 @@
     --now: #FF8A3D; --on-now: #1C0D02; --now-soft: rgba(255,138,61,.13);
     --next: #7EA6FF; --next-soft: rgba(126,166,255,.16);
     --edit: #A88BFA; --edit-soft: rgba(168,139,250,.12); --unsure: #E8B04B;
-    --right: #69DB7C; --right-soft: rgba(105,219,124,.14); --close: #E8B04B; --wrong: #FF8787; --wrong-soft: rgba(255,135,135,.12);
+    --right: #69DB7C; --right-soft: rgba(105,219,124,.14); --wrong: #FF8787; --wrong-soft: rgba(255,135,135,.12);
     --bar: #0F1216; --bar-ink: #E6E8EB; --bar-muted: #8E969F;
     --ivory: #E9EAE6; --ebony: #0E1013; --key-line: rgba(0,0,0,.55);
   }

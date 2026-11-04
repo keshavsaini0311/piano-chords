@@ -3,9 +3,9 @@ import { chromaFromSpectrum, createSettler, judge, type Verdict } from './judge'
 import { formatChord, parseChord } from './music';
 
 // Fake AnalyserNode output: quiet floor, each note a fundamental plus fading overtones like a piano.
-const BIN_HZ = 48000 / 16384;
+const BIN_HZ = 48000 / 8192;
 function spectrum(midis: number[], overtones = 5) {
-  const db = new Float32Array(8192).fill(-110);
+  const db = new Float32Array(4096).fill(-110);
   for (const m of midis)
     for (let k = 1; k <= overtones; k++) {
       const bin = Math.round((k * 440 * 2 ** ((m - 69) / 12)) / BIN_HZ);
@@ -32,10 +32,10 @@ describe('judge', () => {
   it('right without the fifth', () => {
     expect(grade('C', [60, 64])).toBe('right C');
   });
-  it('rightish for another chord on the same root', () => {
-    expect(grade('Cmaj7', C_E_G)).toBe('rightish C');
-    expect(grade('C', [60, 64, 67, 70])).toBe('rightish C7');
-    expect(grade('C', [60, 65, 67])).toBe('rightish Csus4');
+  it('right for any chord on the same root, and says which one', () => {
+    expect(grade('Cmaj7', C_E_G)).toBe('right C');
+    expect(grade('C', [60, 64, 67, 70])).toBe('right C7');
+    expect(grade('C', [60, 65, 67])).toBe('right Csus4');
   });
   it('off for a different chord, and says what it heard', () => {
     expect(grade('C', [57, 60, 64])).toBe('off Am');
@@ -50,15 +50,14 @@ describe('judge', () => {
 
 describe('createSettler', () => {
   const v = (grade: Verdict['grade']) => ({ grade, heard: parseChord('C'), notes: [] }) as Verdict;
-  it('needs a few agreeing readings, holds through silence, and latches right per chord', () => {
+  it('is quick to praise, slower to fault, holds through silence, and latches right per chord', () => {
     const settle = createSettler();
     expect(settle('a', v('off'))).toBeNull();
-    expect(settle('a', v('right'))).toBeNull();
     expect(settle('a', v('off'))).toBeNull();
-    expect(settle('a', v('off'))?.grade).toBe('off');
+    expect(settle('a', v('off'))?.grade).toBe('off'); // off needs 3
     expect(settle('a', null)?.grade).toBe('off'); // silence keeps it
-    settle('a', v('right'));
-    expect(settle('a', v('right'))?.grade).toBe('right');
+    expect(settle('a', v('right'))?.grade).toBe('off');
+    expect(settle('a', v('right'))?.grade).toBe('right'); // right needs only 2
     expect(settle('a', v('off'))?.grade).toBe('right'); // got it: stays got
     expect(settle('b', v('right'))).toBeNull(); // new chord starts fresh
   });

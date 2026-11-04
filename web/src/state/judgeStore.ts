@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { Grade, Verdict } from '../domain/judge';
 
-const RANK: Record<Grade, number> = { off: 0, rightish: 1, right: 2 };
+const RANK: Record<Grade, number> = { off: 0, right: 1 };
 
 type JudgeState = {
   listening: boolean;

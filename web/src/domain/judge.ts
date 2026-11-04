@@ -1,15 +1,15 @@
 // Grades what the mic hears against the chord you should be playing.
-// right    = the chord's notes, nothing much else (any inversion/octave; the 5th may be left out)
-// rightish = a different chord on the same root (C when the chart says Cmaj7, C7, Csus4…)
-// off      = a different chord; `heard` says which one it sounded like
+// right = any chord on the right root: the chart's exact notes (any inversion/octave, 5th optional)
+//         or another flavour of it (C, C7, Csus4… all count when the chart says Cmaj7)
+// off   = a different chord; `heard` says which one it sounded like
 import { chordPitchClasses, toPitchClass, type Chord, type PitchClass } from './music';
 
 export type Chroma = number[]; // 12 energies, index = pitch class
-export type Grade = 'right' | 'rightish' | 'off';
+export type Grade = 'right' | 'off';
 export type Verdict = { grade: Grade; heard: Chord; notes: PitchClass[] };
 
 const QUALITIES = ['', 'm', '7', 'maj7', 'm7', 'sus2', 'sus4', 'dim', 'aug', '5'];
-const LOW_HZ = 75; // below ~D2 semitones sit closer than an FFT bin
+const LOW_HZ = 100; // below ~G2 semitones sit closer than an 8192-point FFT can split
 const HIGH_HZ = 2100; // above this it's mostly overtones
 const PEAK_RANGE_DB = 30; // peaks this far under the loudest one are noise
 const OVERTONE_WEIGHT = 0.25; // a peak at a whole multiple of a lower note is mostly that note's overtone
@@ -70,15 +70,16 @@ export function judge(target: Chord, chroma: Chroma): Verdict | null {
   const extra = chroma.reduce((sum: number, e, pc) => (tones.includes(pc as PitchClass) ? sum : sum + e), 0) / total;
   if (!missing.length && extra <= EXTRA_RATIO) return { grade: 'right', heard: target, notes };
   const heard = closestChord(chroma);
-  return { grade: heard.kind === 'chord' && heard.root === target.root ? 'rightish' : 'off', heard, notes };
+  const sameRoot = heard.kind === 'chord' && heard.root === target.root && notes.length >= 2;
+  return { grade: sameRoot ? 'right' : 'off', heard, notes };
 }
 
 /**
- * Steadies the raw ~10/s verdicts for one chord at a time: a grade shows once it wins a few
- * readings in a row, silence keeps the last grade up, and once you get it right it stays right
+ * Steadies the raw ~20/s verdicts for one chord at a time: quick to praise (2 readings), slower
+ * to say "off" (3), silence keeps the last grade up, and once you get it right it stays right
  * until the chord changes.
  */
-export function createSettler(window = 5, needed = 3) {
+export function createSettler(window = 4, needRight = 2, needOff = 3) {
   let chordId: string | null = null;
   let recent: Verdict[] = [];
   let shown: Verdict | null = null;
@@ -86,7 +87,7 @@ export function createSettler(window = 5, needed = 3) {
     if (id !== chordId) [chordId, recent, shown] = [id, [], null];
     if (!verdict || shown?.grade === 'right') return shown;
     recent = [...recent.slice(1 - window), verdict];
-    for (const grade of ['right', 'rightish', 'off'] as const) {
+    for (const [grade, needed] of [['right', needRight], ['off', needOff]] as const) {
       const hits = recent.filter((v) => v.grade === grade);
       if (hits.length >= needed) return (shown = hits[hits.length - 1]);
     }
