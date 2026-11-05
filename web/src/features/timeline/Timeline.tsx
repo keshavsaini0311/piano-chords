@@ -2,7 +2,7 @@
 // Grab and drag anywhere to move through the song (left = forward); a plain click jumps there.
 // The track follows time through a CSS transform set outside React, so playback never re-renders
 // the chord blocks; only the active-chord highlight re-renders, once per chord change.
-// In edit mode each chord has a handle on its left edge: drag it to move the change (snaps to beats).
+// Each chord has a handle on its left edge: drag it to move the change (snaps to beats).
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { moveChordStart } from '../../domain/edits';
 import { isUnsure, snapToBeat } from '../../domain/timing';
@@ -11,6 +11,7 @@ import { player } from '../../services/player';
 import { loadPeaks } from '../../services/waveform';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
+import { useJudgeStore } from '../../state/judgeStore';
 import { useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
 import { ChordPopover } from '../editor/ChordPopover';
@@ -51,8 +52,9 @@ function drawWaveform(canvas: HTMLCanvasElement | null, peaks: number[], time: n
 export function Timeline() {
   const song = useSong();
   const active = useActiveIndex();
-  const { selectedChordId, selectChord, mode } = useViewStore();
+  const { selectedChordId, selectChord } = useViewStore();
   const apply = useSongStore((s) => s.apply);
+  const grades = useJudgeStore((s) => s.results);
   const { label } = useDisplay();
   const [peaks, setPeaks] = useState<number[]>([]);
   const [width, setWidth] = useState(0);
@@ -144,7 +146,7 @@ export function Timeline() {
             {song.chords.map((c, i) => (
               <button
                 key={c.id}
-                className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', isUnsure(c) && 'unsure', c.chord.kind === 'none' && 'silent'].filter(Boolean).join(' ')}
+                className={['chord-block', i === active && 'active', c.id === selectedChordId && 'selected', isUnsure(c) && 'unsure', c.chord.kind === 'none' && 'silent', grades[c.id] && `graded-${grades[c.id]}`].filter(Boolean).join(' ')}
                 style={{ left: px(c.start), width: px(c.end - c.start) }}
                 onClick={() => {
                   if (justPanned.current) return;
@@ -156,8 +158,7 @@ export function Timeline() {
                 <ChordName label={label(c.chord)} />
               </button>
             ))}
-            {mode === 'edit' &&
-              song.chords.slice(1).map((c) => (
+            {song.chords.slice(1).map((c) => (
                 <button
                   key={`edge-${c.id}`}
                   className={edge?.id === c.id ? 'chord-edge dragging' : 'chord-edge'}
@@ -191,8 +192,7 @@ export function Timeline() {
                 <span key={l.id} style={{ left: px(l.start), width: px(l.end - l.start) }}>{l.text}</span>
               ))}
           </div>
-          {mode === 'edit' &&
-            song.chords
+          {song.chords
               .map((c, i) => ({ c, i }))
               .filter(({ c }) => c.id === selectedChordId)
               .map(({ c, i }) => <ChordPopover key={c.id} event={c} index={i} style={{ left: px(c.start) }} />)}

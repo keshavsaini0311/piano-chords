@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { openLibrary } from '../../App';
-import { useSongView, useViewStore } from '../../state/viewStore';
+import { useSongView } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
 import type { Playlist } from '../../domain/playlists';
+import { PracticeToggle } from '../judge/Practice';
 import { KeyMenu } from '../transpose/KeyMenu';
 import { useDisplay, useSong } from './display';
 
@@ -11,7 +12,6 @@ type Props = { playlist: Playlist | null; songId: string; onNext: (() => void) |
 export function StudioHeader({ playlist, songId, onNext }: Props) {
   const song = useSong();
   const { semitones } = useSongView(song.id);
-  const { mode, setMode } = useViewStore();
   const { currentKey, originalKey } = useDisplay();
   const [menuOpen, setMenuOpen] = useState(false);
   return (
@@ -32,10 +32,7 @@ export function StudioHeader({ playlist, songId, onNext }: Props) {
           <button className="btn" onClick={onNext ?? undefined} disabled={!onNext} title="Plays automatically when this song ends">Next ›</button>
         </div>
       )}
-      <nav className="seg" aria-label="Mode">
-        <button aria-pressed={mode === 'play'} onClick={() => setMode('play')}>Play</button>
-        <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')} title="E">Edit chords</button>
-      </nav>
+      <PracticeToggle />
       <div className="key-control">
         <button className="key-button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-haspopup="dialog">
           <span className="muted small">Key</span>

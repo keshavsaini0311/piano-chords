@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { alignChart } from '../../domain/align';
 import { toLeadSheet, type SheetLine } from '../../domain/leadSheet';
 import type { ChordEvent } from '../../domain/song';
+import { useJudgeStore } from '../../state/judgeStore';
+import { usePlaybackStore } from '../../state/playbackStore';
 import { useViewStore } from '../../state/viewStore';
 import { useActiveIndex, useDisplay, useSong, useVoicings } from '../studio/display';
 import { ChordChip } from './ChordChip';
@@ -25,7 +27,8 @@ export function ChartPreview() {
   const song = useSong();
   const active = useActiveIndex();
   const selected = useViewStore((s) => s.selectedChordId);
-  const mode = useViewStore((s) => s.mode);
+  const playing = usePlaybackStore((s) => s.playing);
+  const grades = useJudgeStore((s) => s.results);
   const { label } = useDisplay();
   const voicings = useVoicings();
   const lines = useMemo(() => toLeadSheet(alignChart(song), 4, (e) => label(e.chord)), [song, label]);
@@ -35,10 +38,10 @@ export function ChartPreview() {
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    if (mode !== 'play') return;
+    if (!playing) return; // follow the song while it plays; stay put while you edit
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     lineRefs.current[currentLine]?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
-  }, [currentLine, mode]);
+  }, [currentLine, playing]);
 
   const chip = (event: ChordEvent, isActive: boolean, isSelected: boolean) => (
     <ChordChip
@@ -48,6 +51,7 @@ export function ChartPreview() {
       voicing={voicings[indexById.get(event.id)!] ?? []}
       active={isActive}
       selected={isSelected}
+      grade={grades[event.id]}
     />
   );
 
