@@ -84,12 +84,13 @@ class SongStore:
         return [{**{k: s[k] for k in ("id", "title", "artist", "duration")}, "chordTime": _chord_time(s), "hasLyrics": bool(s.get("lyrics"))} for s in songs]
 
     def delete_song(self, song_id: str) -> bool:
-        folder = self.song_dir(song_id)
-        if not folder.exists():
-            return False
-        shutil.rmtree(folder)
-        self.write_playlists([{**p, "songIds": [i for i in p["songIds"] if i != song_id]} for p in self.read_playlists()])
-        return True
+        with self.lock:  # so an update_song in flight finishes first and can't recreate the folder
+            folder = self.song_dir(song_id)
+            if not folder.exists():
+                return False
+            shutil.rmtree(folder)
+            self.write_playlists([{**p, "songIds": [i for i in p["songIds"] if i != song_id]} for p in self.read_playlists()])
+            return True
 
     def read_playlists(self) -> list[dict]:
         return json.loads(self.playlists_file.read_text()) if self.playlists_file.exists() else []

@@ -26,3 +26,26 @@ def test_keep_server_fields_drops_mixes_the_server_never_wrote():
     merged, changed = keep_server_fields({}, {"mixes": ["x"], "lyrics": [{"id": "l0", "text": "a", "words": []}, {"id": "l1", "text": ""}]})
     assert "mixes" not in merged and "words" not in merged["lyrics"][0] and changed
     assert not keep_server_fields({}, {"lyrics": [{"id": "l1", "text": ""}]})[1]
+
+
+def test_delete_waits_for_an_update_in_flight_and_the_folder_stays_gone(tmp_path):
+    import threading
+
+    store = SongStore(tmp_path)
+    store.write_song("abcdefghijk", {"id": "abcdefghijk"})
+    inside, release = threading.Event(), threading.Event()
+
+    def change(song):
+        inside.set()
+        release.wait(2)
+        return {**song, "title": "T"}
+
+    updater = threading.Thread(target=store.update_song, args=("abcdefghijk", change))
+    updater.start()
+    inside.wait(2)
+    deleter = threading.Thread(target=store.delete_song, args=("abcdefghijk",))
+    deleter.start()
+    release.set()
+    updater.join()
+    deleter.join()
+    assert not (tmp_path / "songs" / "abcdefghijk").exists()

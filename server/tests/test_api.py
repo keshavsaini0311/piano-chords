@@ -246,3 +246,21 @@ def test_put_keeps_server_written_fields(tmp_path):
     assert "mixes" not in song
     assert client.put(f"/api/songs/{SONG_ID}", json=song).status_code == 200
     assert client.get(f"/api/songs/{SONG_ID}").json()["mixes"] == mixes
+
+
+def test_put_of_a_missing_song_is_404_and_creates_no_folder(tmp_path):
+    client = make_client(tmp_path)
+    assert client.put(f"/api/songs/{SONG_ID}", json={"title": "x"}).status_code == 404
+    assert not (tmp_path / "songs" / SONG_ID).exists()
+
+
+def test_put_keeps_words_on_unchanged_lines_and_drops_them_on_reworded_ones(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song = client.get(f"/api/songs/{SONG_ID}").json()
+    words = [{"index": 0, "start": 0.5, "end": 1.0}]
+    SongStore(tmp_path).update_song(SONG_ID, lambda s: {**s, "lyrics": [{**l, "words": words} for l in s["lyrics"]]})
+    song["lyrics"][1]["text"] = "something else"
+    assert client.put(f"/api/songs/{SONG_ID}", json=song).status_code == 200
+    saved = client.get(f"/api/songs/{SONG_ID}").json()["lyrics"]
+    assert saved[0]["words"] == words and "words" not in saved[1]
