@@ -4,12 +4,14 @@ version = "0.1.0"
 description = "Local server: YouTube audio, chord detection, lyrics"
 requires-python = ">=3.12"
 dependencies = [
+    "ctc-forced-aligner==1.0.2",
     "demucs==4.1.0",
     "fastapi>=0.162.0",
     "httpx>=0.28.1",
     "imageio-ffmpeg>=0.7.0",
     "librosa>=1.0.0",
     "lv-chordia>=1.1.0",
+    "unidecode>=1.3",
     "uvicorn>=0.54.0",
     "yt-dlp>=2026.10.26",
 ]

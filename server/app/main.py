@@ -9,6 +9,7 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.align import CtcAligner, align_song
 from app.audio import YtDlpFetcher
 from app.detect import detect_beats, get_detector
 from app.jobs import JobRunner
@@ -42,7 +43,7 @@ class Playlist(BaseModel):
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or Deps(
         fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR),
-        separator=DemucsSeparator(),
+        separator=DemucsSeparator(), aligner=CtcAligner(),
     )
     store, runner = deps.store, JobRunner(deps)
     app = FastAPI(title="piano-chords")
@@ -82,10 +83,19 @@ def create_app(deps: Deps | None = None) -> FastAPI:
     def save_song(song_id: str, song: dict = Body(...)):
         existing_song(song_id)
         incoming = {**song, "id": song_id}
+        lyrics_changed = False
+
+        def merge(stored: dict) -> dict:
+            nonlocal lyrics_changed
+            merged, lyrics_changed = keep_server_fields(stored, incoming)
+            return merged
+
         try:
-            store.update_song(song_id, lambda stored: keep_server_fields(stored, incoming)[0])
+            store.update_song(song_id, merge)
         except FileNotFoundError:
             raise HTTPException(404, "Song not found")
+        if lyrics_changed and deps.aligner:
+            runner.run_later(align_song, song_id, deps)
         return {"ok": True}
 
     @app.get("/api/songs/{song_id}/audio")

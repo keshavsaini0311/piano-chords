@@ -70,7 +70,7 @@ it('no word times: unchanged estimate; anchor beats word times', () => { ... });
   - PUT `/api/songs/{id}`: when `keep_server_fields` reports changed lyrics and `deps.aligner` is set → `runner.run_later(align_song, id, deps)`.
   - `scripts/backfill.py --align`: aligns songs that have sung lyrics but no line with `words`.
 
-- [ ] **Step 1: Write the failing tests** (a `FakeAligner` returning fixed words and optionally running a callback mid-align; extend `make_client` with `aligner=None`; never load the real model in unit tests):
+- [x] **Step 1: Write the failing tests** (a `FakeAligner` returning fixed words and optionally running a callback mid-align; extend `make_client` with `aligner=None`; never load the real model in unit tests):
 
 ```python
 def test_language_of(): assert language_of("नमस्ते दुनिया") == "hin" and language_of("hello there") == "eng"
@@ -86,10 +86,10 @@ def test_changed_lyrics_drop_words_and_realign(tmp_path): ...  # PUT with l1's t
 def test_results_for_changed_text_are_dropped(tmp_path): ...   # FakeAligner edits l0's text via update_song mid-align → l0 has no words
 def test_align_prefers_the_vocals_mix(tmp_path): ...           # mix/vocals.m4a present → FakeAligner got that path
 ```
-- [ ] **Step 2: Run** `cd server && uv run pytest -q tests/test_align.py tests/test_api.py` — Expected: the new tests FAIL.
-- [ ] **Step 3: Implement**, adding the dependencies with `uv add ctc-forced-aligner==1.0.2 "unidecode>=1.3"`; confirm `torch` is still `2.15.0` and there's no `torchaudio`.
-- [ ] **Step 4: Run**, then `npm run check` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(server): align lyrics word by word after import and lyric changes`
+- [x] **Step 2: Run** `cd server && uv run pytest -q tests/test_align.py tests/test_api.py` — Expected: the new tests FAIL.
+- [x] **Step 3: Implement**, adding the dependencies with `uv add ctc-forced-aligner==1.0.2 "unidecode>=1.3"`; confirm `torch` is still `2.15.0` and there's no `torchaudio`.
+- [x] **Step 4: Run**, then `npm run check` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(server): align lyrics word by word after import and lyric changes`
 
 ### Task 3: Measure, smoke, document
 

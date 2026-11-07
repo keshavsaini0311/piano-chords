@@ -33,6 +33,10 @@ class JobRunner:
             from app.stems import split_song
 
             self.after_import.append(split_song)
+        if deps.aligner:
+            from app.align import align_song
+
+            self.after_import.append(align_song)
 
     def submit(self, url: str) -> Job:
         song_id = video_id(url)  # ValueError for non-YouTube links: the API turns it into a 400

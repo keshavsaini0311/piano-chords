@@ -12,6 +12,7 @@ from app.refine import refine_timing
 from app.store import SongStore
 
 if TYPE_CHECKING:
+    from app.align import LyricAligner
     from app.stems import StemSeparator
 
 MIN_SEGMENT_SEC = 0.1  # matches the browser's MIN_CHORD_SEC
@@ -28,6 +29,7 @@ class Deps:
     prepare: Callable[[Path], Path] = field(default=to_analysis_wav)  # audio -> file the models read
     refine: Callable[[Path, list[Segment], list[float]], list[Segment]] = field(default=refine_timing)  # fix change timing
     separator: "StemSeparator | None" = None  # splits the song into mixes after import
+    aligner: "LyricAligner | None" = None  # times each lyric word after import and lyric changes
 
 
 def merge_slivers(segments: list[Segment]) -> list[Segment]:
