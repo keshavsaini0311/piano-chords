@@ -102,3 +102,20 @@ def test_align_prefers_the_vocals_mix(tmp_path, monkeypatch):
     wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
     settle(client, lambda s: "words" in s["lyrics"][0])
     assert aligner.audio == [mix / "vocals.m4a"]
+
+
+def test_lyric_edits_queued_while_busy_align_once(tmp_path):
+    import threading
+
+    gate = threading.Event()
+    aligner = FakeAligner(during=lambda: gate.wait(5))  # the import's own align holds the worker
+    client = make_client(tmp_path, aligner=aligner)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song = client.get(f"/api/songs/{SONG_ID}").json()
+    for text in ("first edit here", "second edit here"):  # e.g. an edit then an undo
+        song["lyrics"][1]["text"] = text
+        client.put(f"/api/songs/{SONG_ID}", json=song)
+    gate.set()
+    settle(client, lambda s: len(s["lyrics"][1].get("words", [])) == 3)
+    time.sleep(0.2)
+    assert len(aligner.audio) == 2  # the import, then one re-align that read the latest text

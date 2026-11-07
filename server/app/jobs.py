@@ -29,6 +29,7 @@ class JobRunner:
         self.lock = threading.Lock()
         self.pool = ThreadPoolExecutor(max_workers=1)
         self.after_import: list[Callable[[str, Deps], None]] = []
+        self.pending: set[tuple[Callable[..., None], str]] = set()  # run_later work queued but not started
         if deps.separator:
             from app.stems import split_song
 
@@ -67,8 +68,20 @@ class JobRunner:
             for follow_up in self.after_import:
                 self._guarded(follow_up, job.song_id, self.deps)
 
-    def run_later(self, fn: Callable[..., None], *args) -> None:
-        self.pool.submit(self._guarded, fn, *args)
+    def run_later(self, fn: Callable[..., None], song_id: str, *args) -> None:
+        """Queue fn(song_id, *args) once: a repeat queued before the first starts is dropped, since the first reads the latest song."""
+        key = (fn, song_id)
+        with self.lock:
+            if key in self.pending:
+                return
+            self.pending.add(key)
+
+        def start() -> None:
+            with self.lock:
+                self.pending.discard(key)  # cleared on start, not finish: a later edit must queue a fresh run
+            self._guarded(fn, song_id, *args)
+
+        self.pool.submit(start)
 
     @staticmethod
     def _guarded(fn: Callable[..., None], *args) -> None:
