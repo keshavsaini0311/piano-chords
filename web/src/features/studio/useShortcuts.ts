@@ -1,6 +1,7 @@
 // Keyboard shortcuts for the studio. Ignored while typing in a field.
 import { useEffect } from 'react';
 import { activeChordIndex } from '../../domain/timing';
+import { findSections, sectionAt } from '../../domain/sections';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
@@ -8,7 +9,7 @@ import { useJudgeStore } from '../../state/judgeStore';
 import { useViewStore } from '../../state/viewStore';
 import { stepReview } from '../editor/EditBar';
 import { isTypingTarget } from './shortcutTarget';
-import { toggleLoop, togglePlay } from '../player/PlayerBar';
+import { loopSection, toggleLoop, togglePlay } from '../player/PlayerBar';
 
 export function useShortcuts() {
   useEffect(() => {
@@ -36,6 +37,10 @@ export function useShortcuts() {
         '[': () => view.setSemitones(song.id, semitones - 1),
         ']': () => view.setSemitones(song.id, semitones + 1),
         l: () => toggleLoop(song.chords),
+        s: () => {
+          const section = sectionAt(findSections(song), time);
+          if (section) loopSection(section);
+        },
         m: () => useJudgeStore.getState().toggle(),
         w: () => useJudgeStore.getState().toggleWait(),
         Escape: () => view.selectChord(null),

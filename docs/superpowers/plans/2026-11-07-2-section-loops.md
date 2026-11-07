@@ -71,8 +71,8 @@ it('sectionAt', () => { const s = findSections(song); expect(sectionAt(s, s[2].s
 - Consumes: `findSections`, `sectionAt` (Task 1).
 - Produces: `export function loopSection(section: Section)` in `PlayerBar.tsx` next to `toggleLoop` — sets the loop to the section and seeks to its start; if that exact loop is already on, clears it.
 
-- [ ] **Step 1: Band.** In `Timeline`, `const sections = useMemo(() => findSections(song), [song])`. A `.section-lane` row above `.chord-lane`, positioned with the same `px()` as chord blocks: one `<button className="section-block">` per section with its label, title `Loop {label} (S)`, `aria-pressed` when the current loop equals it, `onClick={() => !justPanned.current && loopSection(s)}`. Style: height 22px, `--surface2` fill, `--line` border, radius 6, 12px `--muted` text; pressed: `--next-soft` fill, `--next` text. Render nothing when `sections` is empty.
-- [ ] **Step 2: Shortcut.** `s` → `loopSection(sectionAt(findSections(song), time))` when there is one.
-- [ ] **Step 3: Verify** `npm run check` — Expected: PASS. Then `npm run dev` with a temp data copy (runbook §2): a song with lyrics shows the band; clicking it toggles the loop on and off; `S` loops. No browser → "needs a human".
-- [ ] **Step 4: Docs.** `docs/ARCHITECTURE.md` §4.1: `sections.ts` ("verse/chorus from repeated lyrics; derived, never stored"); §4.4 timeline row: section band. Tick item 2 in `TODO.md`.
-- [ ] **Step 5: Commit** `feat(web): section band on the timeline; S loops a section`
+- [x] **Step 1: Band.** In `Timeline`, `const sections = useMemo(() => findSections(song), [song])`. A `.section-lane` row above `.chord-lane`, positioned with the same `px()` as chord blocks: one `<button className="section-block">` per section with its label, title `Loop {label} (S)`, `aria-pressed` when the current loop equals it, `onClick={() => !justPanned.current && loopSection(s)}`. Style: height 22px, `--surface2` fill, `--line` border, radius 6, 12px `--muted` text; pressed: `--next-soft` fill, `--next` text. Render nothing when `sections` is empty.
+- [x] **Step 2: Shortcut.** `s` → `loopSection(sectionAt(findSections(song), time))` when there is one.
+- [x] **Step 3: Verify** `npm run check` — Expected: PASS. Then `npm run dev` with a temp data copy (runbook §2): a song with lyrics shows the band; clicking it toggles the loop on and off; `S` loops. No browser → "needs a human".
+- [x] **Step 4: Docs.** `docs/ARCHITECTURE.md` §4.1: `sections.ts` ("verse/chorus from repeated lyrics; derived, never stored"); §4.4 timeline row: section band. Tick item 2 in `TODO.md`.
+- [x] **Step 5: Commit** `feat(web): section band on the timeline; S loops a section`

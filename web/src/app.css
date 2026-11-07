@@ -27,6 +27,9 @@ body { background: #F2F3F0; }
 
 /* ---------- Timeline ---------- */
 .timeline { user-select: none; padding: 8px 16px 10px; background: var(--paper); border-bottom: 1px solid var(--line); }
+.section-lane { position: relative; height: 22px; }
+.section-block { position: absolute; top: 0; height: 22px; padding: 0 6px; overflow: hidden; white-space: nowrap; text-align: left; font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; }
+.section-block[aria-pressed='true'] { background: var(--next-soft); color: var(--next); }
 .chord-lane { position: relative; height: 48px; }
 .lyric-lane { position: relative; height: 22px; }
 .chord-block { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 8px; overflow: hidden; border: 1px solid var(--line2); border-radius: 8px; background: var(--surface); font-size: 15px; }

@@ -207,6 +207,7 @@ tests are plain function tests.
 | `suggest.ts` | When fixing a chord: the song's own chords, most-played first. |
 | `judge.ts` | Mic checking. `chromaFromSpectrum` (FFT → 12 note energies, overtones discounted), `judge` (right / off and which notes were heard), `createSettler` (steadies readings and latches "right" for the chord). |
 | `score.ts` | Practice scoring. `createRunTracker` (one attempt per chord while playing), `judgementFor` (Perfect / Great / Good / Late; windows scale with tempo via `beatSeconds`), `summarize`, `letterFor`, `tipsFor`. |
+| `sections.ts` | `findSections` (verse/chorus from repeated lyrics; derived, never stored), `sectionAt`. |
 | `playlists.ts` | Playlist edits, `nextSong`, `songKeySummary` (key and easiest key from `chordTime`). |
 | `profile.ts`, `instruments.ts` | Your settings as a player (instrument, key range, difficulty, voicing, note names) and the instrument registry (piano only; range defaults to F3–C6). |
 
@@ -240,7 +241,7 @@ the browser by older versions). `studioSession.ts` is §2.2.
 |---|---|
 | `library/` | `LibraryScreen`: add a song, song cards (with key and easiest key), playlists. `JobProgress`: the import progress. |
 | `studio/` | `StudioScreen` (layout and lifetime), `StudioHeader` (back, title, playlist "Next", Check my playing, Key), `display.ts` (hooks turning the song into what's shown: labels, voicings, active chord), `useShortcuts`. |
-| `timeline/` | `Timeline`: the scrolling waveform, chord lane and lyric lane with the playhead fixed in the middle. Drag to move through the song, drag a chord's left edge to move the change, click to select. |
+| `timeline/` | `Timeline`: the scrolling waveform, section band (click loops a section), chord lane and lyric lane with the playhead fixed in the middle. Drag to move through the song, drag a chord's left edge to move the change, click to select. |
 | `editor/` | `EditBar` (undo/redo, flagged chords "Next"), `ChordPopover` (fix a chord: the song's chords first, root/type picker under "More"), `LyricsFinder`. |
 | `chart/` | `ChartPreview` (chords over lyrics, or lead-sheet bars; follows playback), `ChordChip` (hover to see the keys). |
 | `judge/` | `PracticeToggle`, `PracticeStrip` (the mic loop, target notes, verdict, live score), `RunSummary` (the run card). |

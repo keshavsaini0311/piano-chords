@@ -1,5 +1,6 @@
 // Bottom bar: play/pause, time, scrubber, loop the current change, speed.
 import type { ChordEvent } from '../../domain/song';
+import type { Section } from '../../domain/sections';
 import { activeChordIndex } from '../../domain/timing';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
@@ -31,6 +32,14 @@ export function toggleLoop(chords: ChordEvent[]) {
   const i = Math.max(0, activeChordIndex(chords, time));
   const last = chords[Math.min(i + 1, chords.length - 1)];
   if (chords[i]) setLoop({ start: chords[i].start, end: last.end });
+}
+
+/** Loops a section from its start; clicking the section that is already looping turns the loop off. */
+export function loopSection(section: Section) {
+  const { loop, setLoop } = usePlaybackStore.getState();
+  if (loop?.start === section.start && loop.end === section.end) return setLoop(null);
+  setLoop({ start: section.start, end: section.end });
+  player.seek(section.start);
 }
 
 export function PlayerBar() {
