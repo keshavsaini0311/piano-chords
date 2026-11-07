@@ -76,10 +76,12 @@ export function gateStop(prev: number, time: number, gateAt: number | null): num
   return gateAt !== null && prev < gateAt && gateAt <= time && time - prev < 0.25 ? gateAt : null;
 }
 
-/** Start of the first real chord after `index` that lasts at least half a beat; N.C. and blips are never waited on. */
-export function nextGateAt(chords: ChordEvent[], index: number, songBeat: number): number | null {
+/** Start of the first real chord after `index` that lasts at least half a beat; N.C. and blips are never waited on.
+ * In a loop, a gate at or past the loop end becomes the loop start: the restart is the next change. */
+export function nextGateAt(chords: ChordEvent[], index: number, songBeat: number, loop: Loop | null = null): number | null {
   const next = chords.slice(index + 1).find((c) => c.chord.kind === 'chord' && c.end - c.start >= songBeat / 2);
-  return next ? next.start : null;
+  const at = next ? next.start : null;
+  return loop && (at === null || at >= loop.end) ? loop.start : at;
 }
 
 export type WaitAction = 'none' | 'setGate' | 'resume' | 'release' | 'clear';

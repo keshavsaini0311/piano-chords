@@ -80,6 +80,12 @@ describe('wait-for-me rules', () => {
   it('gateStop ignores jumps', () => { expect(gateStop(5, 12, 10)).toBeNull(); expect(gateStop(12, 4, 10)).toBeNull(); expect(gateStop(10, 10.02, 10)).toBeNull(); });
   it('nextGateAt skips N.C. and chords under half a beat', () => expect(nextGateAt([ev('a', 0, 2, 'C'), ev('n', 2, 3, 'N.C.'), ev('s', 3, 3.2, 'G'), ev('b', 3.2, 5, 'F')], 0, 0.5)).toBe(3.2));
   it('nextGateAt before the first chord, and at the end', () => { expect(nextGateAt([ev('a', 1, 2, 'C')], -1, 0.5)).toBe(1); expect(nextGateAt([ev('a', 0, 2, 'C')], 0, 0.5)).toBeNull(); });
+  it('nextGateAt in a loop waits at the loop start when the next chord is past the loop end', () => {
+    const cs = [ev('a', 4, 8, 'C'), ev('b', 8, 12, 'G'), ev('c', 12, 14, 'F')];
+    expect(nextGateAt(cs, 1, 0.5, { start: 4, end: 12 })).toBe(4);
+    expect(nextGateAt(cs, 0, 0.5, { start: 4, end: 12 })).toBe(8);
+    expect(nextGateAt(cs, 2, 0.5, { start: 4, end: 14 })).toBe(4);
+  });
   const base = { waitMode: true, playing: true, waiting: false, time: 1, gate: 2, gateAt: 2, hit: false, targetStart: 2 };
   it('waitAction keeps the gate on the next change', () => expect(waitAction({ ...base, gate: null })).toBe('setGate'));
   it('waitAction resumes on a hit', () => expect(waitAction({ ...base, waiting: true, time: 2, hit: true })).toBe('resume'));

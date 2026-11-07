@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { startClock } from './clock';
+import { holdClock, startClock } from './clock';
 import type { Player } from './player';
 
 function run(times: number[], loop: { start: number; end: number } | null, gate: number | null) {
@@ -32,8 +32,23 @@ describe('startClock gate', () => {
     expect(onGate).toHaveBeenCalledWith(4.01);
   });
 
+  it('a gate exactly at the loop start is waited on after the jump', () => {
+    const { onGate, seek } = run([11.99, 12.01, 4.02], { start: 4, end: 12 }, 4);
+    expect(seek).toHaveBeenCalledWith(4);
+    expect(onGate).toHaveBeenCalledTimes(1);
+    expect(onGate).toHaveBeenCalledWith(4);
+  });
+
   it('a later frame at the gate time does not stop again', () => {
     const { onGate } = run([9.98, 10.02, 10, 10], null, 10);
     expect(onGate).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes nothing while held, then carries on', () => {
+    holdClock(true);
+    const held = run([0, 0.01], null, null);
+    holdClock(false);
+    expect(held.onTick).not.toHaveBeenCalled();
+    expect(run([42], null, null).onTick).toHaveBeenCalledWith(42);
   });
 });

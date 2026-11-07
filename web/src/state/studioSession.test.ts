@@ -3,11 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../services/player', () => ({
   player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn(), play: vi.fn(), seek: vi.fn(), currentTime: vi.fn(() => 42) },
 }));
-vi.mock('../services/clock', () => ({ startClock: vi.fn(() => vi.fn()) }));
+vi.mock('../services/clock', () => ({ startClock: vi.fn(() => vi.fn()), holdClock: vi.fn() }));
 
 import { player } from '../services/player';
 import { api } from '../services/api';
-import { startClock } from '../services/clock';
+import { holdClock, startClock } from '../services/clock';
 import { loopSection, switchMix, togglePlay } from '../features/player/PlayerBar';
 import { usePlaybackStore } from './playbackStore';
 import { openStudio } from './studioSession';
@@ -85,7 +85,7 @@ describe('mixes', () => {
   describe('switchMix edge cases', () => {
     const id = 'abcdefghijk';
     afterEach(() => {
-      usePlaybackStore.setState({ playing: false, rate: 1 });
+      usePlaybackStore.setState({ playing: false, waiting: false, rate: 1 });
       useViewStore.setState({ perSong: {} });
       vi.mocked(player.load).mockReset().mockResolvedValue(undefined);
       vi.mocked(player.play).mockClear();
@@ -111,6 +111,35 @@ describe('mixes', () => {
       done();
       await p;
       expect(player.play).not.toHaveBeenCalled();
+    });
+
+    it('is ignored while waiting at a gate', async () => {
+      usePlaybackStore.setState({ playing: true, waiting: true });
+      vi.mocked(player.load).mockClear();
+      await switchMix(id, 'vocals');
+      expect(player.load).not.toHaveBeenCalled();
+    });
+
+    it('does not play when waiting began during the load', async () => {
+      usePlaybackStore.setState({ playing: true });
+      let done!: () => void;
+      vi.mocked(player.load).mockReturnValueOnce(new Promise<void>((r) => (done = r)));
+      const p = switchMix(id, 'vocals');
+      usePlaybackStore.setState({ waiting: true });
+      done();
+      await p;
+      expect(player.play).not.toHaveBeenCalled();
+    });
+
+    it('holds the clock while the source swaps, so it never publishes the new source at 0', async () => {
+      vi.mocked(holdClock).mockClear();
+      let done!: () => void;
+      vi.mocked(player.load).mockReturnValueOnce(new Promise<void>((r) => (done = r)));
+      const p = switchMix(id, 'vocals');
+      expect(holdClock).toHaveBeenLastCalledWith(true);
+      done();
+      await p;
+      expect(holdClock).toHaveBeenLastCalledWith(false);
     });
 
     it('goes back to the previous mix when the load fails', async () => {

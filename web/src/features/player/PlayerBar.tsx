@@ -4,6 +4,7 @@ import type { ChordEvent } from '../../domain/song';
 import type { Section } from '../../domain/sections';
 import { activeChordIndex } from '../../domain/timing';
 import { api } from '../../services/api';
+import { holdClock } from '../../services/clock';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongView, useViewStore } from '../../state/viewStore';
@@ -47,15 +48,17 @@ export function loopSection(section: Section) {
 /** Swap the audio for another mix without losing the place, the speed or whether it was playing. */
 let switching = false;
 export async function switchMix(songId: string, mix: MixId) {
-  if (switching) return;
+  if (switching || usePlaybackStore.getState().waiting) return; // while waiting the audio is paused at the gate: leave it there
   switching = true;
+  holdClock(true);
   const time = player.currentTime();
   const { rate } = usePlaybackStore.getState();
   const previous = useViewStore.getState().perSong[songId]?.mix ?? 'full';
   const restore = () => {
     player.setRate(rate);
     player.seek(time);
-    if (usePlaybackStore.getState().playing) player.play();
+    const { playing, waiting } = usePlaybackStore.getState();
+    if (playing && !waiting) player.play();
   };
   try {
     await player.load(api.mixUrl(songId, mix));
@@ -65,6 +68,7 @@ export async function switchMix(songId: string, mix: MixId) {
     // The source was already swapped: put the previous mix back; the label keeps showing it.
     await player.load(api.mixUrl(songId, previous)).then(restore, () => {});
   } finally {
+    holdClock(false);
     switching = false;
   }
 }
@@ -76,6 +80,7 @@ export function PlayerBar() {
   const time = usePlaybackStore((s) => s.time);
   const rate = usePlaybackStore((s) => s.rate);
   const loop = usePlaybackStore((s) => s.loop);
+  const waiting = usePlaybackStore((s) => s.waiting);
   const mix = useSongView(song.id).mix ?? 'full';
   const volume = useViewStore((s) => s.volume);
   const setVolume = (v: number) => {
@@ -119,7 +124,7 @@ export function PlayerBar() {
         Speed {rate * 100}%
       </button>
       {!!song.mixes?.length && (
-        <button className="btn" onClick={() => switchMix(song.id, nextMix(mix, ['full', ...song.mixes!]))} title="Mix: tap to switch between the full song, a backing track, no vocals and vocals only">
+        <button className="btn" disabled={waiting} onClick={() => switchMix(song.id, nextMix(mix, ['full', ...song.mixes!]))} title="Mix: tap to switch between the full song, a backing track, no vocals and vocals only">
           {MIX_LABEL[mix]}
         </button>
       )}

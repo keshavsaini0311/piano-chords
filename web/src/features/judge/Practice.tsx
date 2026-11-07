@@ -51,6 +51,7 @@ export function PracticeStrip() {
   const hasRuns = usePracticeStore((s) => !!s.runs[song.id]?.length);
   const playing = usePlaybackStore((s) => s.playing);
   const waiting = usePlaybackStore((s) => s.waiting);
+  const loop = usePlaybackStore((s) => s.loop);
   const [error, setError] = useState<string | null>(null);
   const event = song.chords[index] ?? null;
   const target = event ? played(event.chord) : null;
@@ -60,7 +61,7 @@ export function PracticeStrip() {
   const now = {
     songId: song.id,
     songBeat,
-    gateAt: nextGateAt(song.chords, index, songBeat),
+    gateAt: nextGateAt(song.chords, index, songBeat, loop),
     id: event?.id ?? null,
     target,
     label: event ? label(event.chord) : '',
