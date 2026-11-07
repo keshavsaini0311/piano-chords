@@ -4,7 +4,11 @@ import { openLibrary, openSong } from '../../App';
 import { addSong, createPlaylist, deletePlaylist, moveSong, removeSong, renamePlaylist, songKeySummary, type Playlist } from '../../domain/playlists';
 import { api, type Job, type SongSummary } from '../../services/api';
 import { pollJob } from '../../services/jobPolling';
+import { nextToLearn, playableSongs, mastery, songChordsAsPlayed } from '../../domain/mastery';
+import { usePracticeStore } from '../../state/practiceStore';
+import { useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
+import { ChordMastery } from './ChordMastery';
 import { JobProgress } from './JobProgress';
 
 const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
@@ -55,7 +59,7 @@ function AddSong({ onImported }: { onImported: () => void }) {
   );
 }
 
-function SongCard({ song, playlists, onChange, onRemove }: { song: SongSummary; playlists: Playlist[]; onChange: (p: Playlist[]) => void; onRemove: () => void }) {
+function SongCard({ song, playable, playlists, onChange, onRemove }: { song: SongSummary; playable: boolean; playlists: Playlist[]; onChange: (p: Playlist[]) => void; onRemove: () => void }) {
   const [menu, setMenu] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const summary = useMemo(() => songKeySummary(song.chordTime), [song.chordTime]);
@@ -68,6 +72,7 @@ function SongCard({ song, playlists, onChange, onRemove }: { song: SongSummary; 
       <div className="song-meta">
         <button className="song-title" onClick={() => openSong(song.id)}>{song.title}</button>
         <div className="muted small">{song.artist}</div>
+        {playable && <div className="song-badge">✓ You can play this</div>}
         {summary && (
           <div className="small song-keys">
             Key <ChordName label={summary.key} />
@@ -143,6 +148,13 @@ export function LibraryScreen({ playlistId }: { playlistId: string | null }) {
     void api.savePlaylists(next);
   };
   const byId = useMemo(() => new Map(songs.map((s) => [s.id, s])), [songs]);
+  const runs = usePracticeStore((s) => s.runs);
+  const perSong = useViewStore((s) => s.perSong);
+  const difficulty = useViewStore((s) => s.profile.difficulty);
+  const skills = useMemo(() => mastery(runs), [runs]);
+  const asPlayed = useMemo(() => songs.map((s) => ({ id: s.id, chords: songChordsAsPlayed(s.chordTime, perSong[s.id]?.semitones ?? 0, difficulty) })), [songs, perSong, difficulty]);
+  const playable = useMemo(() => new Set(playableSongs(asPlayed, skills)), [asPlayed, skills]);
+  const next = useMemo(() => nextToLearn(asPlayed, skills), [asPlayed, skills]);
   const open = playlists.find((p) => p.id === playlistId) ?? null;
   const shown = songs.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(query.trim().toLowerCase()));
 
@@ -177,17 +189,21 @@ export function LibraryScreen({ playlistId }: { playlistId: string | null }) {
       ) : songs.length === 0 && !error ? (
         <p className="muted">Paste a YouTube link above to add your first song.</p>
       ) : (
+        <>
+        <ChordMastery skills={skills} playable={playable} next={next} songs={songs} />
         <div className="song-grid">
           {shown.map((song) => (
             <SongCard
               key={song.id}
               song={song}
+              playable={playable.has(song.id)}
               playlists={playlists}
               onChange={savePlaylists}
               onRemove={() => api.deleteSong(song.id).then(() => (void load(), api.listPlaylists().then(setPlaylists)))}
             />
           ))}
         </div>
+        </>
       )}
     </main>
   );

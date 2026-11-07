@@ -74,8 +74,8 @@ it('learn next favours the chord that unlocks most songs', () => expect(nextToLe
 - Consumes: Task 1; `usePracticeStore` (`runs`); `useViewStore` (`perSong`, `profile.difficulty`); the `songs: SongSummary[]` `LibraryScreen` already loads.
 - Produces: `export function ChordMastery({ skills, playable, next, songs })`. `LibraryScreen` computes `skills`, `playable` (a `Set`) and `next` once with `useMemo` and passes `playable` to `SongCard` for its badge.
 
-- [ ] **Step 1: Panel.** On the All songs tab, above the grid: `<section className="mastery panel">` with `.panel-head` `<h2>Your chords</h2>`; chord chips (`.mastery-chord`, a `<ChordName>` each, sorted mastered → solid → learning → new, then name) coloured by level per `docs/DESIGN-SYSTEM.md` §1 (`--right`, `--next`, `--unsure`, `--muted` dashed), title `{chord}: {level}`; then `You can play these now` with song links (`openSong`), then `Learn next` with up to 3 `{chord} unlocks {n} song(s)` lines; empty parts hidden; with no runs at all, only the empty-state sentence.
-- [ ] **Step 2: Badge.** `SongCard` shows `✓ You can play this` (`.song-badge`: `--right`, 12px, 600) when its id is in `playable`.
-- [ ] **Step 3: Verify** `npm run check` — Expected: PASS. Then `npm run dev` with a temp data copy: the panel (or its empty state) shows. No browser → "needs a human".
-- [ ] **Step 4: Docs.** `docs/ARCHITECTURE.md` §4.1 `mastery.ts`; §4.4 library row "Your chords". Tick item 3 in `TODO.md`.
-- [ ] **Step 5: Commit** `feat(web): Your chords panel and You can play this badges`
+- [x] **Step 1: Panel.** On the All songs tab, above the grid: `<section className="mastery panel">` with `.panel-head` `<h2>Your chords</h2>`; chord chips (`.mastery-chord`, a `<ChordName>` each, sorted mastered → solid → learning → new, then name) coloured by level per `docs/DESIGN-SYSTEM.md` §1 (`--right`, `--next`, `--unsure`, `--muted` dashed), title `{chord}: {level}`; then `You can play these now` with song links (`openSong`), then `Learn next` with up to 3 `{chord} unlocks {n} song(s)` lines; empty parts hidden; with no runs at all, only the empty-state sentence.
+- [x] **Step 2: Badge.** `SongCard` shows `✓ You can play this` (`.song-badge`: `--right`, 12px, 600) when its id is in `playable`.
+- [x] **Step 3: Verify** `npm run check` — Expected: PASS. Then `npm run dev` with a temp data copy: the panel (or its empty state) shows. No browser → "needs a human".
+- [x] **Step 4: Docs.** `docs/ARCHITECTURE.md` §4.1 `mastery.ts`; §4.4 library row "Your chords". Tick item 3 in `TODO.md`.
+- [x] **Step 5: Commit** `feat(web): Your chords panel and You can play this badges`
