@@ -14,7 +14,7 @@ from app.detect import detect_beats, get_detector
 from app.jobs import JobRunner
 from app.lyrics import LrclibLyrics
 from app.pipeline import Deps
-from app.store import SongStore
+from app.store import SongStore, keep_server_fields
 
 DATA_DIR = Path(os.environ.get("PC_DATA_DIR") or Path(__file__).resolve().parent.parent / "data").expanduser()
 
@@ -79,7 +79,11 @@ def create_app(deps: Deps | None = None) -> FastAPI:
     @app.put("/api/songs/{song_id}")
     def save_song(song_id: str, song: dict = Body(...)):
         existing_song(song_id)
-        store.write_song(song_id, {**song, "id": song_id})
+        incoming = {**song, "id": song_id}
+        try:
+            store.update_song(song_id, lambda stored: keep_server_fields(stored, incoming)[0])
+        except FileNotFoundError:
+            raise HTTPException(404, "Song not found")
         return {"ok": True}
 
     @app.get("/api/songs/{song_id}/audio")

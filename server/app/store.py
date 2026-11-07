@@ -6,8 +6,10 @@ import json
 import os
 import re
 import shutil
+import threading
 from dataclasses import asdict
 from pathlib import Path
+from typing import Callable
 
 SONG_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 SETTING_NAME = re.compile(r"^[\w:.-]{1,64}$")
@@ -22,8 +24,27 @@ def _chord_time(song: dict) -> dict[str, float]:
     return seconds
 
 
+def keep_server_fields(stored: dict, incoming: dict) -> tuple[dict, bool]:
+    """A browser save must not erase what only the server writes: `mixes` and each lyric line's `words`
+    (kept only while the line's id and text are unchanged). True when a non-empty line is new or reworded."""
+    merged = {k: v for k, v in incoming.items() if k != "mixes"}
+    if "mixes" in stored:
+        merged["mixes"] = stored["mixes"]
+    old = {(l.get("id"), l.get("text")): l for l in stored.get("lyrics", [])}
+    changed = False
+    lyrics = []
+    for line in incoming.get("lyrics", []):
+        kept = old.get((line.get("id"), line.get("text")))
+        changed = changed or (kept is None and bool(line.get("text", "").strip()))
+        lyrics.append({**{k: v for k, v in line.items() if k != "words"}, **({"words": kept["words"]} if kept and "words" in kept else {})})
+    if "lyrics" in incoming:
+        merged["lyrics"] = lyrics
+    return merged, changed
+
+
 class SongStore:
     def __init__(self, data_dir: Path):
+        self.lock = threading.RLock()  # every song.json write goes through it
         self.data_dir = data_dir
         self.root = data_dir / "songs"
         self.settings_file = data_dir / "settings.json"
@@ -41,7 +62,15 @@ class SongStore:
         return json.loads((self.song_dir(song_id) / "song.json").read_text())
 
     def write_song(self, song_id: str, song: dict) -> None:
-        self._write_json(self.song_dir(song_id) / "song.json", song)
+        with self.lock:
+            self._write_json(self.song_dir(song_id) / "song.json", song)
+
+    def update_song(self, song_id: str, change: Callable[[dict], dict]) -> dict:
+        """Read-change-write under the lock. Raises FileNotFoundError for a missing song (never recreates its folder)."""
+        with self.lock:
+            song = change(self.read_song(song_id))
+            self._write_json(self.song_dir(song_id) / "song.json", song)
+            return song
 
     def write_detected(self, song_id: str, segments: list) -> None:
         """Raw model output, never edited: lets the app compare models or reset a chord later."""

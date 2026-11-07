@@ -235,3 +235,14 @@ def test_cover_is_served_from_the_song_folder(tmp_path):
     (tmp_path / "songs" / SONG_ID / "cover.jpg").write_bytes(b"jpeg-bytes")
     response = client.get(f"/api/songs/{SONG_ID}/cover")
     assert response.status_code == 200 and response.content == b"jpeg-bytes"
+
+
+def test_put_keeps_server_written_fields(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song = client.get(f"/api/songs/{SONG_ID}").json()
+    mixes = ["backing", "novocals", "vocals"]
+    SongStore(tmp_path).update_song(SONG_ID, lambda s: {**s, "mixes": mixes})
+    assert "mixes" not in song
+    assert client.put(f"/api/songs/{SONG_ID}", json=song).status_code == 200
+    assert client.get(f"/api/songs/{SONG_ID}").json()["mixes"] == mixes
