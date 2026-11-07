@@ -44,7 +44,7 @@ class FakeLyrics:
         return self.lines
 
 
-def make_client(tmp_path, lyrics=None, gate=None):
+def make_client(tmp_path, lyrics=None, gate=None, separator=None):
     deps = Deps(
         fetcher=FakeFetcher(),
         detector=FakeDetector(gate),
@@ -53,6 +53,7 @@ def make_client(tmp_path, lyrics=None, gate=None):
         store=SongStore(tmp_path),
         prepare=lambda audio: audio,
         refine=lambda wav, segments, beats: segments,
+        separator=separator,
     )
     return TestClient(create_app(deps))
 

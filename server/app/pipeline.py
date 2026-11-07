@@ -3,13 +3,16 @@ import statistics
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from app.audio import AudioFetcher, Meta, to_analysis_wav
 from app.detect import ChordDetector, Segment
 from app.lyrics import Line, LyricsProvider
 from app.refine import refine_timing
 from app.store import SongStore
+
+if TYPE_CHECKING:
+    from app.stems import StemSeparator
 
 MIN_SEGMENT_SEC = 0.1  # matches the browser's MIN_CHORD_SEC
 STAGES = ("downloading", "detecting", "lyrics", "saving")
@@ -24,6 +27,7 @@ class Deps:
     store: SongStore
     prepare: Callable[[Path], Path] = field(default=to_analysis_wav)  # audio -> file the models read
     refine: Callable[[Path, list[Segment], list[float]], list[Segment]] = field(default=refine_timing)  # fix change timing
+    separator: "StemSeparator | None" = None  # splits the song into mixes after import
 
 
 def merge_slivers(segments: list[Segment]) -> list[Segment]:

@@ -14,6 +14,7 @@ from app.detect import detect_beats, get_detector
 from app.jobs import JobRunner
 from app.lyrics import LrclibLyrics
 from app.pipeline import Deps
+from app.stems import DemucsSeparator, MIXES
 from app.store import SongStore, keep_server_fields
 
 DATA_DIR = Path(os.environ.get("PC_DATA_DIR") or Path(__file__).resolve().parent.parent / "data").expanduser()
@@ -40,7 +41,8 @@ class Playlist(BaseModel):
 
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or Deps(
-        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR)
+        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR),
+        separator=DemucsSeparator(),
     )
     store, runner = deps.store, JobRunner(deps)
     app = FastAPI(title="piano-chords")
@@ -93,6 +95,14 @@ def create_app(deps: Deps | None = None) -> FastAPI:
         if not audio:
             raise HTTPException(404, "Audio not found")
         return FileResponse(audio)  # supports Range, which the <audio> element needs to seek
+
+    @app.get("/api/songs/{song_id}/mix/{name}")
+    def get_mix(song_id: str, name: str):
+        existing_song(song_id)
+        path = store.song_dir(song_id) / "mix" / f"{name}.m4a"
+        if name not in MIXES or not path.exists():
+            raise HTTPException(404, "Mix not found")
+        return FileResponse(path, media_type="audio/mp4")
 
     @app.post("/api/songs/{song_id}/lyrics")
     def search_lyrics(song_id: str, request: LyricsRequest):

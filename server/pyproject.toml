@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Local server: YouTube audio, chord detection, lyrics"
 requires-python = ">=3.12"
 dependencies = [
+    "demucs==4.1.0",
     "fastapi>=0.162.0",
     "httpx>=0.28.1",
     "imageio-ffmpeg>=0.7.0",
@@ -20,3 +21,7 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.uv]
+# demucs 4.1.0 pins numpy<2 on Intel Macs, which conflicts with librosa 1.0; this app runs on Apple silicon (and Linux)
+environments = ["sys_platform != 'darwin' or platform_machine != 'x86_64'"]
