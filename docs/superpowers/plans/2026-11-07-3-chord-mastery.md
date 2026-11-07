@@ -45,7 +45,7 @@
   - `export function playableSongs(songs: { id: string; chords: Record<string, number> }[], skills: Map<string, ChordSkill>): string[]`
   - `export function nextToLearn(songs: { id: string; chords: Record<string, number> }[], skills: Map<string, ChordSkill>, limit = 3): { chord: string; unlocks: string[] }[]` — for each main (≥ 3%) chord not solid/mastered: `unlocks` = songs where it's the only main chord not solid/mastered. Sort by `unlocks.length` desc, then total seconds across songs desc.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 it('spellings collapse', () => { expect(chordKey('Db')).toBe('C#'); expect(chordKey('N.C.')).toBeNull(); });
@@ -59,10 +59,10 @@ it('song chords as played follow key and difficulty', () => expect(songChordsAsP
 it('playable when main chords are solid; passing chords and empty songs', () => { expect(playableSongs([{ id: 'a', chords: { C: 50, G: 48, F: 2 } }], solidCG)).toEqual(['a']); expect(playableSongs([{ id: 'b', chords: {} }], solidCG)).toEqual([]); });
 it('learn next favours the chord that unlocks most songs', () => expect(nextToLearn(songs, solidCG)[0]).toEqual({ chord: 'F', unlocks: ['a', 'c'] }));
 ```
-- [ ] **Step 2: Run** `cd web && npx vitest run src/domain/mastery.test.ts` — Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run**, then `npm run check` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(web): chord skill across practice, playable songs, next chord to learn`
+- [x] **Step 2: Run** `cd web && npx vitest run src/domain/mastery.test.ts` — Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run**, then `npm run check` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(web): chord skill across practice, playable songs, next chord to learn`
 
 ### Task 2: "Your chords" in the library, docs
 
