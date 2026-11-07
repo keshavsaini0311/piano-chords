@@ -64,7 +64,9 @@ export function findSections(song: Song): Section[] {
   const songEnd = song.chords.at(-1)?.end ?? lastSung;
   if (songEnd - lastSung >= 4) marks.push({ label: 'Outro', start: lastSung });
 
-  return marks.map((m, i) => ({ id: `s${i}`, label: m.label, start: m.start, end: marks[i + 1]?.start ?? songEnd }));
+  // A section that starts where the next one does (both snapped to one long chord) is empty: drop it.
+  const kept = marks.filter((m, i) => m.start < (marks[i + 1]?.start ?? songEnd));
+  return kept.map((m, i) => ({ id: `s${i}`, label: m.label, start: m.start, end: kept[i + 1]?.start ?? songEnd }));
 }
 
 export function sectionAt(sections: Section[], time: number): Section | null {

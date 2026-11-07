@@ -44,6 +44,16 @@ describe('findSections', () => {
     expect(s.map((x) => x.id)).toEqual(['s0', 's1', 's2', 's3', 's4', 's5']);
   });
 
+  it('never makes a zero-length section when lines share one long chord', () => {
+    const song = makeSong(texts);
+    song.chords = [{ id: 'long', start: 0, end: 44, chord: parseChord('C') }];
+    const s = findSections(song);
+    expect(s.length).toBeGreaterThan(0);
+    s.forEach((x) => expect(x.end).toBeGreaterThan(x.start));
+    s.slice(1).forEach((x, i) => expect(x.start).toBe(s[i].end));
+    expect(s.map((x) => x.id)).toEqual(s.map((_, i) => `s${i}`));
+  });
+
   it('sectionAt', () => {
     const s = findSections(makeSong(texts));
     expect(sectionAt(s, s[2].start + 0.1)?.label).toBe('Chorus');
