@@ -45,14 +45,28 @@ export function loopSection(section: Section) {
 }
 
 /** Swap the audio for another mix without losing the place, the speed or whether it was playing. */
+let switching = false;
 export async function switchMix(songId: string, mix: MixId) {
+  if (switching) return;
+  switching = true;
   const time = player.currentTime();
-  const { playing, rate } = usePlaybackStore.getState();
-  await player.load(api.mixUrl(songId, mix));
-  player.setRate(rate);
-  player.seek(time);
-  if (playing) player.play();
-  useViewStore.getState().setMix(songId, mix);
+  const { rate } = usePlaybackStore.getState();
+  const previous = useViewStore.getState().perSong[songId]?.mix ?? 'full';
+  const restore = () => {
+    player.setRate(rate);
+    player.seek(time);
+    if (usePlaybackStore.getState().playing) player.play();
+  };
+  try {
+    await player.load(api.mixUrl(songId, mix));
+    restore();
+    useViewStore.getState().setMix(songId, mix);
+  } catch {
+    // The source was already swapped: put the previous mix back; the label keeps showing it.
+    await player.load(api.mixUrl(songId, previous)).then(restore, () => {});
+  } finally {
+    switching = false;
+  }
 }
 
 export function PlayerBar() {

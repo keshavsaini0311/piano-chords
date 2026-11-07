@@ -81,4 +81,44 @@ describe('mixes', () => {
     expect(player.play).toHaveBeenCalled();
     expect(useViewStore.getState().perSong.abcdefghijk.mix).toBe('vocals');
   });
+
+  describe('switchMix edge cases', () => {
+    const id = 'abcdefghijk';
+    afterEach(() => {
+      usePlaybackStore.setState({ playing: false, rate: 1 });
+      useViewStore.setState({ perSong: {} });
+      vi.mocked(player.load).mockReset().mockResolvedValue(undefined);
+      vi.mocked(player.play).mockClear();
+    });
+
+    it('ignores a second switch while the first is loading', async () => {
+      let done!: () => void;
+      vi.mocked(player.load).mockClear().mockReturnValueOnce(new Promise<void>((r) => (done = r)));
+      const first = switchMix(id, 'backing');
+      await switchMix(id, 'backing');
+      expect(player.load).toHaveBeenCalledTimes(1);
+      done();
+      await first;
+    });
+
+    it('does not resume when paused during the load', async () => {
+      usePlaybackStore.setState({ playing: true });
+      vi.mocked(player.play).mockClear();
+      let done!: () => void;
+      vi.mocked(player.load).mockReturnValueOnce(new Promise<void>((r) => (done = r)));
+      const p = switchMix(id, 'vocals');
+      usePlaybackStore.setState({ playing: false });
+      done();
+      await p;
+      expect(player.play).not.toHaveBeenCalled();
+    });
+
+    it('goes back to the previous mix when the load fails', async () => {
+      useViewStore.setState({ perSong: { [id]: { semitones: 0, mix: 'backing' } } });
+      vi.mocked(player.load).mockClear().mockRejectedValueOnce(new Error('boom'));
+      await switchMix(id, 'vocals');
+      expect(player.load).toHaveBeenLastCalledWith('/api/songs/abcdefghijk/mix/backing');
+      expect(useViewStore.getState().perSong[id].mix).toBe('backing');
+    });
+  });
 });
