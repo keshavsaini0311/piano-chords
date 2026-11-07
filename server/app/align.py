@@ -36,42 +36,53 @@ class CtcAligner:
         self.model_path = model_path
 
     def align(self, audio: Path, lines: list[dict]) -> dict[str, list[dict]]:
-        import ctc_forced_aligner as cfa  # heavy: only when a song is actually aligned
         import imageio_ffmpeg
         import numpy as np
-        import onnxruntime
 
         raw = subprocess.run(
             [imageio_ffmpeg.get_ffmpeg_exe(), "-loglevel", "error", "-i", str(audio), "-ac", "1", "-ar", "16000", "-f", "f32le", "-"],
             capture_output=True, check=True,
         ).stdout
-        wave = np.frombuffer(raw, dtype=np.float32).copy()
+        emissions, stride, tokenizer = self.emit(np.frombuffer(raw, dtype=np.float32).copy())
+        out: dict[str, list[dict]] = {}
+        for line in lines:
+            found = self.align_line(emissions, stride, tokenizer, line)
+            if found and accept_line(line["start"], line["end"], found[0], found[1]):
+                out[line["id"]] = found[0]
+        return out
+
+    def emit(self, wave):
+        """16 kHz mono float32 samples -> (emissions, stride in ms, tokenizer)."""
+        import ctc_forced_aligner as cfa  # heavy: only when a song is actually aligned
+        import onnxruntime
+
         cfa.ensure_onnx_model(str(self.model_path), cfa.MODEL_URL)
         session, tokenizer = onnxruntime.InferenceSession(str(self.model_path)), cfa.Tokenizer()
         emissions, stride = cfa.generate_emissions(session, wave, batch_size=4)
+        return emissions, stride, tokenizer
+
+    def align_line(self, emissions, stride, tokenizer, line: dict):
+        """(timed words, mean logprob) for one line inside its window, or None if it can't be aligned."""
+        import ctc_forced_aligner as cfa
+
         fps = 1000 / stride
-        out: dict[str, list[dict]] = {}
-        for line in lines:
-            words = line["text"].split()
-            lang = language_of(line["text"])
-            kept = kept_words(words, [cfa.text_normalize(w, lang) for w in words])
-            if not kept:
-                continue
-            window = max(0.0, line["start"] - WINDOW_SEC)
-            a, b = int(window * fps), min(len(emissions), int((line["end"] + WINDOW_SEC) * fps))
-            try:
-                tokens, starred = cfa.preprocess_text(" ".join(words[i] for i in kept), romanize=True, language=lang)
-                segments, scores, blank = cfa.get_alignments(emissions[a:b], tokens, tokenizer)
-                found = cfa.postprocess_results(starred, cfa.get_spans(tokens, segments, blank), stride, scores)
-            except Exception:  # one unalignable line must not lose the rest of the song
-                continue
-            if len(found) != len(kept):
-                continue
-            timed = [{"index": kept[k], "start": round(window + w["start"], 3), "end": round(window + w["end"], 3)} for k, w in enumerate(found)]
-            mean = statistics.mean(w["score"] / max(1, (w["end"] - w["start"]) * fps) for w in found)
-            if accept_line(line["start"], line["end"], timed, mean):
-                out[line["id"]] = timed
-        return out
+        words = line["text"].split()
+        lang = language_of(line["text"])
+        kept = kept_words(words, [cfa.text_normalize(w, lang) for w in words])
+        if not kept:
+            return None
+        window = max(0.0, line["start"] - WINDOW_SEC)
+        a, b = int(window * fps), min(len(emissions), int((line["end"] + WINDOW_SEC) * fps))
+        try:
+            tokens, starred = cfa.preprocess_text(" ".join(words[i] for i in kept), romanize=True, language=lang)
+            segments, scores, blank = cfa.get_alignments(emissions[a:b], tokens, tokenizer)
+            found = cfa.postprocess_results(starred, cfa.get_spans(tokens, segments, blank), stride, scores)
+        except Exception:  # one unalignable line must not lose the rest of the song
+            return None
+        if len(found) != len(kept):
+            return None
+        timed = [{"index": kept[k], "start": round(window + w["start"], 3), "end": round(window + w["end"], 3)} for k, w in enumerate(found)]
+        return timed, statistics.mean(w["score"] / max(1, (w["end"] - w["start"]) * fps) for w in found)
 
 
 def align_song(song_id: str, deps: "Deps") -> None:
