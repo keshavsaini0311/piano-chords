@@ -10,6 +10,7 @@ import { ChartPreview } from '../chart/ChartPreview';
 import { LyricsFinder } from '../editor/LyricsFinder';
 import { EditBar } from '../editor/EditBar';
 import { PracticeStrip } from '../judge/Practice';
+import { RunSummary } from '../judge/RunSummary';
 import { useJudgeStore } from '../../state/judgeStore';
 import { PlayerBar } from '../player/PlayerBar';
 import { Timeline } from '../timeline/Timeline';
@@ -59,6 +60,7 @@ export function StudioScreen({ songId, playlistId }: { songId: string; playlistI
         </main>
       </div>
       <PlayerBar />
+      <RunSummary />
     </div>
   );
 }
