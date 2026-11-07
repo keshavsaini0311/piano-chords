@@ -130,16 +130,16 @@ flowchart LR
 | File | Does |
 |---|---|
 | `main.py` | The FastAPI app and every route. Builds the real dependencies (`Deps`) unless a test passes fakes. Reads `PC_DATA_DIR`. |
-| `jobs.py` | `JobRunner`: in-memory jobs on a single worker thread (the model needs the whole CPU). Re-submitting a song that's already imported returns "done" at once. Jobs are lost on restart, but finished songs are on disk. After an import finishes it queues a follow-up job on the same thread that splits the song into mixes (`stems.py`), so the song is playable first and the mixes appear later. |
+| `jobs.py` | `JobRunner`: in-memory jobs on a single worker thread (the model needs the whole CPU). Re-submitting a song that's already imported returns "done" at once. Jobs are lost on restart, but finished songs are on disk. After an import is marked done, the same job runs its follow-ups inline on that thread: `split_song` (mixes, `stems.py`) then `align_song` (word times, `align.py`), so the song is playable first and the mixes and word times appear later. `run_later` queues a re-alignment after a lyrics PUT, once per song while one is still waiting to start. |
 | `stems.py` | Demucs splits the audio into stems and saves three mixes in `mix/`: `backing` (vocals, drums and bass, without the piano and other instruments), `novocals` (drums, bass, other) and `vocals`; then sets `song.mixes`. |
 | `pipeline.py` | `run_pipeline` (§2.1), `merge_slivers`, `estimate_confidence`, `assemble`. `Deps` bundles every swappable part. |
 | `audio.py` | `video_id` (accepts every YouTube link shape), `YtDlpFetcher`, `to_analysis_wav`. |
 | `detect.py` | `ChordDetector` protocol and `LvChordiaDetector`; `detect_beats` and the tempo fix. `PC_DETECTOR` picks the model. |
 | `labels.py` | `normalize_label`: model labels → app labels. The browser never sees a model's format. |
 | `refine.py` | Chord-change timing: `fill_long_segments`, `refine_boundaries`. Measured against `eval/`. |
-| `align.py` | Word-level lyric timing: `CtcAligner` (Meta MMS ONNX forced aligner, model cached in `~/.cache/piano-chords/`) times each word inside its line's window; a line keeps `words` only if it passes a confidence gate. `align_song` runs after import and when lyrics change. |
+| `align.py` | Word-level lyric timing: `CtcAligner` (Meta MMS ONNX forced aligner, model cached in `~/.cache/piano-chords/`) times each word inside its line's window; a line keeps `words` only if it passes a confidence gate. `align_song` runs after import and, via `run_later`, when a PUT changes the lyrics. |
 | `lyrics.py` | LRCLIB client: title cleaning, several search attempts, pick by duration, LRC parsing. |
-| `store.py` | `SongStore`: the data folder. `update_song` takes the per-song lock and keeps the fields only the server writes (`keep_server_fields`, e.g. `mixes` and a lyric line's `words`), so a browser autosave can't erase them. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
+| `store.py` | `SongStore`: the data folder. `update_song` does read-change-write under one global `RLock`. The PUT route merges with `keep_server_fields`, which keeps the fields only the server writes (`mixes`, and `words` on lines whose id and text are unchanged), so a browser autosave can't erase them; when the lyrics changed it queues re-alignment. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
 
 ### API
 
@@ -178,7 +178,7 @@ data/                               (server/data by default; PC_DATA_DIR moves i
 |---|---|
 | `scripts/redo_chords.py <id>` | Redo chord timing from `detected.json` with the current refine steps. Replaces your chord edits; backs up first. |
 | `scripts/redo_beats.py <id>` | Redo beats only. Keeps chords and edits. |
-| `scripts/backfill.py` | Make mixes for songs imported before stems existed. Skips songs that already have them. `--align <ids>` adds word times to lyrics. |
+| `scripts/backfill.py --stems \| --align [ids]` | One flag is required: `--stems` makes mixes, `--align` adds word times to lyrics. With ids it redoes those songs; with no ids it does every song that doesn't have them yet. |
 | `eval/timing_synthetic.py` | Synthesised songs with known change times: how accurate chord-change timing is. |
 | `eval/align_synthetic.py [stems dir]` | macOS `say` speaks each word at known times: word-timing accuracy (7 Nov: median 67 ms, 96% within 150 ms). |
 | `eval/timing_real.py`, `eval/fill_real.py` | Effect of the refine steps on your real imports. |
@@ -206,7 +206,7 @@ tests are plain function tests.
 | `music.ts` | Chords as pitch classes. `parseChord` / `formatChord`, `transposeChord`, `simplifyChord` (easy = plain triads), `chordPitchClasses` (via `tonal`), `displayChord` (simplify → transpose → spell sharps/flats for the key), `estimateKey`. |
 | `song.ts` | The `Song` type (chords, beats, lyrics, anchors; always in the original key) and `validate`. |
 | `edits.ts` | Every edit as a pure `(song) => song`: set, confirm, move the start, split, merge, delete, move an anchor. |
-| `timing.ts` | `activeChordIndex` (binary search), `beatIndex`, `isUnsure` / `reviewQueue` (flagged chords), `loopSeekTarget`, `computePeaks` (waveform). |
+| `timing.ts` | `activeChordIndex` (binary search), `beatIndex`, `isUnsure` / `reviewQueue` (flagged chords), `loopSeekTarget`, `computePeaks` (waveform), and wait-for-me: `gateStop`, `nextGateAt`, `waitAction`. |
 | `align.ts` | Places chords over lyric words. Lines are timed; words are too when the server aligned them (`words`), otherwise the position within a line is estimated from time. Manual anchors win. |
 | `leadSheet.ts` | Turns aligned rows into chart lines: chord-only stretches become bars of four, and repeated lines collapse to `×N`. |
 | `voicing.ts` | Chord → keys to press within your keyboard's range. Two strategies: `nearestInversion` (hand moves least) and `rootPosition`. `rankKeys` orders keys by how many chords need black keys. |
@@ -224,7 +224,7 @@ tests are plain function tests.
 |---|---|
 | `api.ts` | The only code that calls the server. Converts between the wire format (chord label strings) and `Chord` objects in `fromWire` / `toWire`. |
 | `player.ts` | The `Player` interface and the `<audio>` implementation. Speed changes keep the pitch (`preservesPitch`). |
-| `clock.ts` | The heartbeat: each animation frame it reads the player's time, applies the loop, and publishes the time. |
+| `clock.ts` | The heartbeat: each animation frame it reads the player's time, stops at the wait-for-me gate, applies the loop, and publishes the time. `holdClock` pauses it while a mix swap loads. |
 | `mic.ts` | Opens the mic (echo cancellation on, so the song from your speakers is removed; noise suppression and auto gain off) and returns chroma when you're louder than the room, which it measures as it goes. |
 | `jobPolling.ts` | Polls an import job once a second; stops and reports on any error. |
 | `waveform.ts` | Decodes the audio in the browser for the waveform peaks. |

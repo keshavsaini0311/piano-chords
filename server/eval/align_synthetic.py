@@ -1,5 +1,5 @@
 """Ground-truth check for the aligner: macOS `say` speaks each word separately at known times (optionally mixed
-over instrumental stems), LRC line starts jittered by +-0.4 s. Measured 7 Nov 2026: median 69 ms, 96% within 150 ms.
+over instrumental stems), LRC line starts jittered by +-0.4 s. Measured 7 Nov 2026: median 67 ms, 96% within 150 ms (the spec spike measured 69 ms).
 Run: PYTHONPATH=. uv run python eval/align_synthetic.py [dir with other.m4a drums.m4a bass.m4a]"""
 import random
 import shutil
