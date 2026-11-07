@@ -63,3 +63,16 @@ def test_mix_endpoint(tmp_path):
     assert client.get(f"/api/songs/{SONG_ID}/mix/backing").content == b"aac"
     assert client.get(f"/api/songs/{SONG_ID}/mix/piano").status_code == 404
     assert client.get("/api/songs/nope/mix/backing").status_code == 404
+
+
+def test_backfill_with_no_ids_skips_songs_that_have_mixes(tmp_path):
+    from scripts.backfill import backfill_stems
+
+    store = SongStore(tmp_path)
+    for song_id, extra in (("doneSong001", {"mixes": list(MIXES)}), ("newSong0001", {})):
+        store.write_song(song_id, {"id": song_id, "title": "t", "artist": "a", "duration": 1, "importedAt": 1, **extra})
+        (store.song_dir(song_id) / "audio.m4a").write_bytes(b"x")
+    separator = FakeSeparator()
+    backfill_stems(store, separator, [])
+    assert separator.calls == 1
+    assert store.read_song("newSong0001")["mixes"] == list(MIXES)

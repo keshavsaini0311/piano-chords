@@ -2,20 +2,31 @@
 With no ids, every song missing the result. Run: cd server && PYTHONPATH=. uv run python scripts/backfill.py --stems [ids]"""
 import sys
 import time
-
-from app.main import DATA_DIR
-from app.stems import DemucsSeparator, split_song
-from app.store import SongStore
 from types import SimpleNamespace
 
-args = sys.argv[1:]
-ids = [a for a in args if not a.startswith("--")]
-store = SongStore(DATA_DIR)
-deps = SimpleNamespace(store=store, separator=DemucsSeparator())
-if "--stems" in args:
-    for song in store.list_songs():
-        if (ids and song["id"] not in ids) or (not ids and song.get("mixes")):
-            continue
+from app.stems import split_song
+
+
+def stem_targets(store, ids: list[str]) -> list[str]:
+    """Given ids, those songs; otherwise every song without mixes (list_songs omits them, so read each record)."""
+    if ids:
+        return ids
+    return [s["id"] for s in store.list_songs() if not store.read_song(s["id"]).get("mixes")]
+
+
+def backfill_stems(store, separator, ids: list[str]) -> None:
+    deps = SimpleNamespace(store=store, separator=separator)
+    for song_id in stem_targets(store, ids):
         started = time.time()
-        split_song(song["id"], deps)
-        print(f"{song['id']}: stems in {time.time() - started:.0f} s")
+        split_song(song_id, deps)
+        print(f"{song_id}: stems in {time.time() - started:.0f} s")
+
+
+if __name__ == "__main__":
+    from app.main import DATA_DIR
+    from app.stems import DemucsSeparator
+    from app.store import SongStore
+
+    args = sys.argv[1:]
+    if "--stems" in args:
+        backfill_stems(SongStore(DATA_DIR), DemucsSeparator(), [a for a in args if not a.startswith("--")])
