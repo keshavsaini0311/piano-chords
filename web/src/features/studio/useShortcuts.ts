@@ -37,6 +37,7 @@ export function useShortcuts() {
         ']': () => view.setSemitones(song.id, semitones + 1),
         l: () => toggleLoop(song.chords),
         m: () => useJudgeStore.getState().toggle(),
+        w: () => useJudgeStore.getState().toggleWait(),
         Escape: () => view.selectChord(null),
         j: () => stepReview(song, 1),
         k: () => stepReview(song, -1),

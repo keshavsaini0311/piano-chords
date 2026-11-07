@@ -46,10 +46,11 @@ export function PracticeStrip() {
   const song = useSong();
   const index = useActiveIndex();
   const { played, label, currentKey } = useDisplay();
-  const { current, level, report, toggle } = useJudgeStore();
+  const { current, level, report, toggle, waitMode, toggleWait } = useJudgeStore();
   const { live: score, saveRun, setLive, openSummary } = usePracticeStore();
   const hasRuns = usePracticeStore((s) => !!s.runs[song.id]?.length);
   const playing = usePlaybackStore((s) => s.playing);
+  const waiting = usePlaybackStore((s) => s.waiting);
   const [error, setError] = useState<string | null>(null);
   const event = song.chords[index] ?? null;
   const target = event ? played(event.chord) : null;
@@ -173,18 +174,21 @@ export function PracticeStrip() {
             ))}
           </ul>
           <p className={`practice-verdict ${current?.grade ?? ''}`} aria-live="polite">
-            {!current && <span className="muted">Play it on your piano…</span>}
-            {current?.grade === 'right' && (
+            {waiting && <>Waiting for {name(target)}. Play it to carry on.</>}
+            {!waiting && !current && <span className="muted">Play it on your piano…</span>}
+            {!waiting && current?.grade === 'right' && (
               <>
                 ✓ Got it{formatChord(current.heard, accidentals) !== formatChord(target, accidentals) && <span className="muted"> ({name(current.heard)})</span>}
               </>
             )}
-            {current?.grade === 'off' && <>✗ Not quite: sounds like {name(current.heard)}</>}
+            {!waiting && current?.grade === 'off' && <>✗ Not quite: sounds like {name(current.heard)}</>}
           </p>
         </>
       )}
       <div className="practice-score" aria-live="off">
-        {score.score === null ? (
+        {waitMode ? (
+          <span className="muted small">Scores are off in Wait for me</span>
+        ) : score.score === null ? (
           <span className="muted small">{playing ? 'Scoring this run…' : 'Press play to score a run'}</span>
         ) : (
           <>
@@ -199,6 +203,8 @@ export function PracticeStrip() {
           </span>
         )}
       </div>
+      <button className="btn" aria-pressed={waitMode} onClick={toggleWait} title="Wait for me (W): the song waits at each change until you play it">Wait for me</button>
+      {waiting && <button className="btn" onClick={() => resumeFromWait(now.gateAt)}>Skip</button>}
       <button className="btn" onClick={() => openSummary(song.id)} disabled={!hasRuns} title="Your scores and what to work on">Progress</button>
       <button className="btn" onClick={toggle}>Stop</button>
     </section>

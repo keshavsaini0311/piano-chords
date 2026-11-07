@@ -227,8 +227,8 @@ tests are plain function tests.
 |---|---|---|
 | `songStore` | The open song, undo/redo stacks, save state. `apply(edit)` is the only way to change it. | Yes: autosave PUTs the song (`subscribeAutosave`). |
 | `viewStore` | Your profile, per-song transpose, volume, selected chord. | Yes: `settings.json` → `piano-chords:view`. |
-| `playbackStore` | Time, playing, speed, loop. `time` changes 60 times a second. | No. |
-| `judgeStore` | Mic on/off, level, current verdict, grade per chord this session. | No. |
+| `playbackStore` | Time, playing, speed, loop, the wait-for-me `gate` and `waiting`. `time` changes 60 times a second. | No. |
+| `judgeStore` | Mic on/off, `waitMode`, level, current verdict, grade per chord this session. | No. |
 | `practiceStore` | Runs per song (last 10), live score, the open summary card. | Yes: `settings.json` → `piano-chords:practice`. |
 
 `settingsStorage.ts` connects the saved stores to `/api/settings` (and picks up anything saved in
@@ -256,6 +256,8 @@ Screens are chosen by the URL hash in `App.tsx`: `#/` library, `#/song/<id>` stu
 ---
 
 ## 5. Mechanisms worth knowing
+
+**Wait-for-me is a gate in the clock.** The rules are `waitAction` in `timing.ts`.
 
 **Transposing is a view, not an edit.** The stored song stays in its original key. Every label on
 screen goes through `displayChord` (simplify → transpose → spell for the new key), via
