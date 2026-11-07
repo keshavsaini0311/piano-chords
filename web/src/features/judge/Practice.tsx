@@ -4,10 +4,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSettler, judge } from '../../domain/judge';
 import { accidentalsForKey, chordPitchClasses, formatChord, noteName, type Chord, type PitchClass } from '../../domain/music';
+import { nextGateAt, waitAction } from '../../domain/timing';
 import { beatSeconds, createRunTracker, judgementFor, summarize, type Attempt } from '../../domain/score';
 import { openMic } from '../../services/mic';
 import { useJudgeStore } from '../../state/judgeStore';
 import { usePlaybackStore } from '../../state/playbackStore';
+import { resumeFromWait } from '../player/PlayerBar';
 import { bestScore, usePracticeStore, type Live } from '../../state/practiceStore';
 import { ChordName } from '../../ui/ChordName';
 import { useActiveIndex, useDisplay, useSong } from '../studio/display';
@@ -57,6 +59,7 @@ export function PracticeStrip() {
   const now = {
     songId: song.id,
     songBeat,
+    gateAt: nextGateAt(song.chords, index, songBeat),
     id: event?.id ?? null,
     target,
     label: event ? label(event.chord) : '',
@@ -102,7 +105,10 @@ export function PracticeStrip() {
         const id = setInterval(() => {
           const { chroma, level } = mic.read();
           const t = live.current;
-          const { time, rate, playing } = usePlaybackStore.getState();
+          const pb = usePlaybackStore.getState();
+          const { time, rate } = pb;
+          const { waitMode } = useJudgeStore.getState();
+          const playing = pb.playing && !waitMode; // wait mode scores nothing: it ends the run
           const raw = chroma && t.target ? judge(t.target, chroma) : null;
           const settled = t.id ? settle(t.id, raw) : null;
           report(t.id, settled, level);
@@ -110,9 +116,16 @@ export function PracticeStrip() {
           if (wasPlaying && !playing) endRun();
           wasPlaying = playing;
           if (playing) updateLive();
+          const act = waitAction({ waitMode, playing: pb.playing, waiting: pb.waiting, time, gate: pb.gate, gateAt: t.gateAt, hit: settled?.grade === 'right' });
+          if (act === 'setGate') pb.setGate(t.gateAt);
+          else if (act === 'resume') resumeFromWait(waitMode ? t.gateAt : null);
+          else if (act === 'release') (pb.setWaiting(false), pb.setPlaying(false));
+          else if (act === 'clear') pb.setGate(null);
         }, TICK_MS);
         stop = () => {
           clearInterval(id);
+          usePlaybackStore.getState().setGate(null);
+          usePlaybackStore.getState().setWaiting(false);
           mic.close();
           endRun();
         };

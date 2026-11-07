@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/player', () => ({
-  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn() },
+  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn(), play: vi.fn() },
 }));
 vi.mock('../services/clock', () => ({ startClock: vi.fn(() => vi.fn()) }));
 
 import { api } from '../services/api';
 import { startClock } from '../services/clock';
+import { togglePlay } from '../features/player/PlayerBar';
+import { usePlaybackStore } from './playbackStore';
 import { openStudio } from './studioSession';
 import { useSongStore } from './songStore';
 
@@ -23,5 +25,13 @@ describe('openStudio', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(useSongStore.getState().song).toBeNull();
     expect(startClock).not.toHaveBeenCalled();
+  });
+});
+
+describe('togglePlay', () => {
+  it('while waiting stops', () => {
+    usePlaybackStore.setState({ playing: true, waiting: true });
+    togglePlay();
+    expect(usePlaybackStore.getState()).toMatchObject({ playing: false, waiting: false });
   });
 });

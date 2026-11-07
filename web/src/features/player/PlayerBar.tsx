@@ -8,8 +8,17 @@ import { formatTime, useSong } from '../studio/display';
 
 const SPEEDS = [1, 0.75, 0.5];
 
+/** Leave the wait-for-me stop: set the next gate, then play on. */
+export function resumeFromWait(nextGate: number | null) {
+  const { setGate, setWaiting } = usePlaybackStore.getState();
+  setGate(nextGate);
+  setWaiting(false);
+  player.play();
+}
+
 export function togglePlay() {
-  const { playing, setPlaying } = usePlaybackStore.getState();
+  const { playing, waiting, setPlaying, setWaiting } = usePlaybackStore.getState();
+  if (playing && waiting) setWaiting(false);
   if (playing) player.pause();
   else player.play();
   setPlaying(!playing);

@@ -31,7 +31,14 @@ export function openStudio(songId: string, onError: (message: string) => void, o
         usePlaybackStore.getState().setPlaying(false);
         onEnded();
       });
-      stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop);
+      stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop,
+        () => usePlaybackStore.getState().gate,
+        (at) => {
+          player.pause();
+          player.seek(at);
+          usePlaybackStore.getState().setWaiting(true);
+        },
+      );
       if (autoplayNext) {
         autoplayNext = false;
         player.play();
@@ -47,6 +54,8 @@ export function openStudio(songId: string, onError: (message: string) => void, o
     player.pause();
     playback.setPlaying(false);
     playback.setLoop(null);
+    playback.setGate(null);
+    playback.setWaiting(false);
     playback.setTime(0);
     useViewStore.getState().selectChord(null);
   };

@@ -7,19 +7,23 @@ const RANK: Record<Grade, number> = { off: 0, right: 1 };
 
 type JudgeState = {
   listening: boolean;
+  waitMode: boolean;
   level: number;
   current: Verdict | null;
   results: Record<string, Grade>; // best grade per chord id
   toggle: () => void;
+  toggleWait: () => void;
   report: (chordId: string | null, verdict: Verdict | null, level: number) => void;
 };
 
 export const useJudgeStore = create<JudgeState>((set) => ({
   listening: false,
+  waitMode: false,
   level: 0,
   current: null,
   results: {},
   toggle: () => set((s) => ({ listening: !s.listening, current: null, level: 0, results: s.listening ? s.results : {} })),
+  toggleWait: () => set((s) => ({ waitMode: !s.waitMode, listening: s.waitMode ? s.listening : true })),
   report: (chordId, verdict, level) =>
     set((s) => {
       const prev = chordId ? s.results[chordId] : undefined;
