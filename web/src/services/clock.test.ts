@@ -12,7 +12,7 @@ function run(times: number[], loop: { start: number; end: number } | null, gate:
   const onGate = vi.fn();
   startClock(player, onTick, () => loop, () => gate, onGate);
   for (let n = 0; n < times.length; n++) frames.shift()!();
-  return { onTick, onGate };
+  return { onTick, onGate, seek: (player as unknown as { seek: ReturnType<typeof vi.fn> }).seek };
 }
 
 describe('startClock gate', () => {
@@ -24,8 +24,16 @@ describe('startClock gate', () => {
     expect(onTick).toHaveBeenLastCalledWith(10);
   });
 
-  it('a loop restart never trips the gate', () => {
-    const { onGate } = run([11.99, 12.01], { start: 4, end: 12 }, 10);
-    expect(onGate).not.toHaveBeenCalled();
+  it('a loop restart jump does not trip the gate, but the gate inside the loop still stops the next pass', () => {
+    const { onGate, seek } = run([11.99, 12.01, 4.02], { start: 4, end: 12 }, 4.01);
+    expect(seek).toHaveBeenCalledWith(4);
+    // the jump frame (12.01) never called onGate; the 4.02 frame steps 4 -> 4.02 across the gate, so it stops there, once
+    expect(onGate).toHaveBeenCalledTimes(1);
+    expect(onGate).toHaveBeenCalledWith(4.01);
+  });
+
+  it('a later frame at the gate time does not stop again', () => {
+    const { onGate } = run([9.98, 10.02, 10, 10], null, 10);
+    expect(onGate).toHaveBeenCalledTimes(1);
   });
 });

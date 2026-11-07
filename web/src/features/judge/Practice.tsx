@@ -116,15 +116,19 @@ export function PracticeStrip() {
           if (wasPlaying && !playing) endRun();
           wasPlaying = playing;
           if (playing) updateLive();
-          const act = waitAction({ waitMode, playing: pb.playing, waiting: pb.waiting, time, gate: pb.gate, gateAt: t.gateAt, hit: settled?.grade === 'right' });
+          const act = waitAction({ waitMode, playing: pb.playing, waiting: pb.waiting, time, gate: pb.gate, gateAt: t.gateAt, hit: settled?.grade === 'right', targetStart: t.id ? t.start : null });
           if (act === 'setGate') pb.setGate(t.gateAt);
           else if (act === 'resume') resumeFromWait(waitMode ? t.gateAt : null);
-          else if (act === 'release') (pb.setWaiting(false), pb.setPlaying(false));
+          else if (act === 'release') {
+            pb.setWaiting(false);
+            pb.setPlaying(false);
+          }
           else if (act === 'clear') pb.setGate(null);
         }, TICK_MS);
         stop = () => {
           clearInterval(id);
           usePlaybackStore.getState().setGate(null);
+          if (usePlaybackStore.getState().waiting) usePlaybackStore.getState().setPlaying(false); // audio is paused at the gate
           usePlaybackStore.getState().setWaiting(false);
           mic.close();
           endRun();

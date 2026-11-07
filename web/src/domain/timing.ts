@@ -84,8 +84,8 @@ export function nextGateAt(chords: ChordEvent[], index: number, songBeat: number
 
 export type WaitAction = 'none' | 'setGate' | 'resume' | 'release' | 'clear';
 
-export function waitAction(s: { waitMode: boolean; playing: boolean; waiting: boolean; time: number; gate: number | null; gateAt: number | null; hit: boolean }): WaitAction {
+export function waitAction(s: { waitMode: boolean; playing: boolean; waiting: boolean; time: number; gate: number | null; gateAt: number | null; hit: boolean; targetStart: number | null }): WaitAction {
   if (!s.waitMode) return s.waiting ? 'resume' : s.gate !== null ? 'clear' : 'none';
-  if (s.waiting) return s.gate !== null && Math.abs(s.time - s.gate) > 0.05 ? 'release' : s.hit ? 'resume' : 'none';
+  if (s.waiting) return s.gate !== null && Math.abs(s.time - s.gate) > 0.05 ? 'release' : s.hit && s.targetStart === s.gate ? 'resume' : 'none'; // a hit counts only for the chord that starts at the gate
   return s.playing && s.gate !== s.gateAt ? 'setGate' : 'none';
 }

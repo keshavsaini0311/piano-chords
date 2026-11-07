@@ -15,8 +15,8 @@ export function startClock(
   const tick = () => {
     const time = player.currentTime();
     const stopAt = gateStop(prev, time, getGate());
-    prev = time;
     if (stopAt !== null) {
+      prev = time;
       onGate(stopAt);
       onTick(stopAt);
       frame = requestAnimationFrame(tick);
@@ -24,6 +24,7 @@ export function startClock(
     }
     const jump = loopSeekTarget(time, getLoop());
     if (jump !== null) player.seek(jump);
+    prev = jump ?? time; // after a loop jump the next step starts from the loop start
     onTick(jump ?? time);
     frame = requestAnimationFrame(tick);
   };
