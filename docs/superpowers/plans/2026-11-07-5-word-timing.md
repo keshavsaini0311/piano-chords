@@ -97,13 +97,13 @@ def test_align_prefers_the_vocals_mix(tmp_path): ...           # mix/vocals.m4a 
 - Create: `server/eval/align_synthetic.py`
 - Modify: `docs/ARCHITECTURE.md`, `TODO.md`
 
-- [ ] **Step 1: Ground-truth check.** Turn `spikes/truth_spike.py` into `server/eval/align_synthetic.py [instrumental_dir]`, reusing `CtcAligner`'s decode and per-line alignment instead of its own copy. Without a directory it uses the spoken track alone; it exits with a clear message when macOS `say` is missing. Run `cd server && PYTHONPATH=. uv run python eval/align_synthetic.py`. Expected: median ≤ 120 ms and ≥ 90% within 150 ms. If it misses, the per-line slicing or time offsets are wrong: fix before going on.
-- [ ] **Step 2: Real-song smoke check** on temp copies of the English and the Devanagari song:
+- [x] **Step 1: Ground-truth check.** Turn `spikes/truth_spike.py` into `server/eval/align_synthetic.py [instrumental_dir]`, reusing `CtcAligner`'s decode and per-line alignment instead of its own copy. Without a directory it uses the spoken track alone; it exits with a clear message when macOS `say` is missing. Run `cd server && PYTHONPATH=. uv run python eval/align_synthetic.py`. Expected: median ≤ 120 ms and ≥ 90% within 150 ms. If it misses, the per-line slicing or time offsets are wrong: fix before going on.
+- [x] **Step 2: Real-song smoke check** on temp copies of the English and the Devanagari song:
 
 ```bash
 cd server && T=$(mktemp -d) && mkdir -p $T/songs && cp -R data/songs/_dK2tDK9grQ data/songs/1gukvtH_a3I $T/songs/ && PC_DATA_DIR=$T PYTHONPATH=. uv run python scripts/backfill.py --align _dK2tDK9grQ 1gukvtH_a3I
 ```
 Then count lines with `words` per song (a one-line Python read of each `song.json`). Expected: finishes in about 40–80 s per song, with some lines aligned in each. Put the numbers in the report; under 30% on either song → "needs a human" (don't change the gate overnight).
-- [ ] **Step 3: Docs.** `docs/ARCHITECTURE.md`: §3 `align.py`, `words` as a server-written field, `--align`; §4.1 `align.ts` uses word times; §7 `align_synthetic.py`. Tick item 5 in `TODO.md`.
-- [ ] **Step 4: Verify** `npm run check` — Expected: PASS.
-- [ ] **Step 5: Commit** `test(server): word-timing accuracy check; docs`
+- [x] **Step 3: Docs.** `docs/ARCHITECTURE.md`: §3 `align.py`, `words` as a server-written field, `--align`; §4.1 `align.ts` uses word times; §7 `align_synthetic.py`. Tick item 5 in `TODO.md`.
+- [x] **Step 4: Verify** `npm run check` — Expected: PASS.
+- [x] **Step 5: Commit** `test(server): word-timing accuracy check; docs`

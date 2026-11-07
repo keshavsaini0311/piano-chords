@@ -137,8 +137,9 @@ flowchart LR
 | `detect.py` | `ChordDetector` protocol and `LvChordiaDetector`; `detect_beats` and the tempo fix. `PC_DETECTOR` picks the model. |
 | `labels.py` | `normalize_label`: model labels → app labels. The browser never sees a model's format. |
 | `refine.py` | Chord-change timing: `fill_long_segments`, `refine_boundaries`. Measured against `eval/`. |
+| `align.py` | Word-level lyric timing: `CtcAligner` (Meta MMS ONNX forced aligner, model cached in `~/.cache/piano-chords/`) times each word inside its line's window; a line keeps `words` only if it passes a confidence gate. `align_song` runs after import and when lyrics change. |
 | `lyrics.py` | LRCLIB client: title cleaning, several search attempts, pick by duration, LRC parsing. |
-| `store.py` | `SongStore`: the data folder. `update_song` takes the per-song lock and keeps the fields only the server writes (`keep_server_fields`, e.g. `mixes`), so a browser autosave can't erase them. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
+| `store.py` | `SongStore`: the data folder. `update_song` takes the per-song lock and keeps the fields only the server writes (`keep_server_fields`, e.g. `mixes` and a lyric line's `words`), so a browser autosave can't erase them. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
 
 ### API
 
@@ -177,8 +178,9 @@ data/                               (server/data by default; PC_DATA_DIR moves i
 |---|---|
 | `scripts/redo_chords.py <id>` | Redo chord timing from `detected.json` with the current refine steps. Replaces your chord edits; backs up first. |
 | `scripts/redo_beats.py <id>` | Redo beats only. Keeps chords and edits. |
-| `scripts/backfill.py` | Make mixes for songs imported before stems existed. Skips songs that already have them. |
+| `scripts/backfill.py` | Make mixes for songs imported before stems existed. Skips songs that already have them. `--align <ids>` adds word times to lyrics. |
 | `eval/timing_synthetic.py` | Synthesised songs with known change times: how accurate chord-change timing is. |
+| `eval/align_synthetic.py [stems dir]` | macOS `say` speaks each word at known times: word-timing accuracy (7 Nov: median 67 ms, 96% within 150 ms). |
 | `eval/timing_real.py`, `eval/fill_real.py` | Effect of the refine steps on your real imports. |
 | `eval/fetch_ug.py` | Fetch Ultimate Guitar charts for comparison (cached in `data/eval/`, never committed). |
 
@@ -205,7 +207,7 @@ tests are plain function tests.
 | `song.ts` | The `Song` type (chords, beats, lyrics, anchors; always in the original key) and `validate`. |
 | `edits.ts` | Every edit as a pure `(song) => song`: set, confirm, move the start, split, merge, delete, move an anchor. |
 | `timing.ts` | `activeChordIndex` (binary search), `beatIndex`, `isUnsure` / `reviewQueue` (flagged chords), `loopSeekTarget`, `computePeaks` (waveform). |
-| `align.ts` | Places chords over lyric words. Lines are timed, words aren't, so the position within a line is estimated from time. Manual anchors win. |
+| `align.ts` | Places chords over lyric words. Lines are timed; words are too when the server aligned them (`words`), otherwise the position within a line is estimated from time. Manual anchors win. |
 | `leadSheet.ts` | Turns aligned rows into chart lines: chord-only stretches become bars of four, and repeated lines collapse to `×N`. |
 | `voicing.ts` | Chord → keys to press within your keyboard's range. Two strategies: `nearestInversion` (hand moves least) and `rootPosition`. `rankKeys` orders keys by how many chords need black keys. |
 | `suggest.ts` | When fixing a chord: the song's own chords, most-played first. |
