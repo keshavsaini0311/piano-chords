@@ -48,7 +48,7 @@ Algorithm (the tests don't pin every choice):
 3. Each occurrence is a `Chorus`; each maximal run of other lines is a `Verse`.
 4. Starts snap as in Global Constraints. Each section ends where the next starts. If the first section starts ≥ 2 s after the first chord's start, an `Intro` covers the time before it. The last section ends at the last chord's `end`; if the time after the last sung line's `end` is ≥ 4 s, it becomes an `Outro`.
 
-- [ ] **Step 1: Write the failing tests** (invented lyric text; a helper builds a song whose chords are one repeating 4-chord loop):
+- [x] **Step 1: Write the failing tests** (invented lyric text; a helper builds a song whose chords are one repeating 4-chord loop):
 
 ```ts
 it('names verses and choruses even when the chords never change', () => expect(findSections(song).map((s) => s.label)).toEqual(['Intro', 'Verse', 'Chorus', 'Verse', 'Chorus', 'Outro']));
@@ -57,10 +57,10 @@ it('too few lines or no repeats, no sections', () => { expect(findSections(short
 it('sections are contiguous and start on chord changes', () => { const s = findSections(song); s.slice(1).forEach((x, i) => expect(x.start).toBe(s[i].end)); expect(song.chords.some((c) => c.start === s[1].start)).toBe(true); });
 it('sectionAt', () => { const s = findSections(song); expect(sectionAt(s, s[2].start + 0.1)?.label).toBe('Chorus'); });
 ```
-- [ ] **Step 2: Run** `cd web && npx vitest run src/domain/sections.test.ts` — Expected: FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(web): find verse and chorus from repeated lyrics`
+- [x] **Step 2: Run** `cd web && npx vitest run src/domain/sections.test.ts` — Expected: FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** — Expected: PASS.
+- [x] **Step 5: Commit** `feat(web): find verse and chorus from repeated lyrics`
 
 ### Task 2: Section band on the timeline, `S`, docs
 
