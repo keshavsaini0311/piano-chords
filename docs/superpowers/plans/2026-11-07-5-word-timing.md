@@ -39,7 +39,7 @@
 **Interfaces:**
 - Produces: `export type WordTime = { index: number; start: number; end: number }`; `LyricLine.words?: WordTime[]`. In `align.ts`, when `line.words?.length`, a chord's character offset is `wordStarts(line.text)[w.index]` for `w` = the last word with `start <= event.start + 0.05` (the first word if none), falling back to the existing estimate when that index doesn't exist. Anchors still win. `alignChart`'s signature is unchanged.
 
-- [ ] **Step 1: Write the failing tests** (invented text):
+- [x] **Step 1: Write the failing tests** (invented text):
 
 ```ts
 it('puts the chord on the word being sung', () => { /* "one two three four" 0–4 s, words at 0, 0.4, 2.8, 3.2; chord at 2.9 → charIndex 8 */ });
@@ -47,10 +47,10 @@ it('before the first word / after the last', () => { /* chord at -0.5 → 0; cho
 it('index counts punctuation words', () => { /* "go — now", word index 2 → charIndex 5 */ });
 it('no word times: unchanged estimate; anchor beats word times', () => { ... });
 ```
-- [ ] **Step 2: Run** `cd web && npx vitest run src/domain/align.test.ts` — Expected: the new tests FAIL.
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run**, then `npm run check` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(web): chart places chords on the sung word when word times exist`
+- [x] **Step 2: Run** `cd web && npx vitest run src/domain/align.test.ts` — Expected: the new tests FAIL.
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run**, then `npm run check` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(web): chart places chords on the sung word when word times exist`
 
 ### Task 2: Align after import and after lyrics change (server)
 

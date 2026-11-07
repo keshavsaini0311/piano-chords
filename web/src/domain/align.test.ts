@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { alignChart } from './align';
 import { parseChord } from './music';
-import type { ChordEvent, LyricLine, Song } from './song';
+import type { ChordEvent, LyricLine, Song, WordTime } from './song';
 
 const chord = (id: string, start: number, end: number): ChordEvent => ({ id, start, end, chord: parseChord('C') });
-const line = (id: string, start: number, end: number, text: string): LyricLine => ({ id, start, end, text });
+const line = (id: string, start: number, end: number, text: string, words?: WordTime[]): LyricLine => ({ id, start, end, text, words });
+const wt = (...starts: number[]): WordTime[] => starts.map((start, index) => ({ index, start, end: start + 0.3 }));
+const charIndexes = (rows: ReturnType<typeof alignChart>) => rows.flatMap((r) => (r.kind === 'lyric' ? r.chords.map((c) => c.charIndex) : []));
 
 function makeSong(chords: ChordEvent[], lyrics: LyricLine[], anchors: Song['anchors'] = {}): Song {
   return { id: 's', title: '', artist: '', duration: 40, originalKey: 'C', beats: [], chords, lyrics, anchors };
@@ -44,5 +46,28 @@ describe('alignChart', () => {
   it('turns an empty lyric line into an instrumental row', () => {
     const rows = alignChart(makeSong([chord('a', 0, 2), chord('b', 6, 8)], [line('l0', 0, 5, 'sing this'), line('l1', 5, 10, '  ')]));
     expect(rows[1]).toEqual({ kind: 'instrumental', chords: [chord('b', 6, 8)] });
+  });
+
+  describe('with word times', () => {
+    const text = 'one two three four';
+    it('puts the chord on the word being sung', () => {
+      const rows = alignChart(makeSong([chord('a', 2.9, 3.5)], [line('l', 0, 4, text, wt(0, 0.4, 2.8, 3.2))]));
+      expect(charIndexes(rows)).toEqual([8]);
+    });
+    it('before the first word / after the last', () => {
+      const l = line('l', -1, 4, text, wt(0, 0.4, 2.8, 3.2));
+      expect(charIndexes(alignChart(makeSong([chord('a', -0.5, 0)], [l])))).toEqual([0]);
+      expect(charIndexes(alignChart(makeSong([chord('a', 3.9, 4)], [l])))).toEqual([14]);
+    });
+    it('index counts punctuation words', () => {
+      const rows = alignChart(makeSong([chord('a', 2, 3)], [line('l', 0, 4, 'go \u2014 now', wt(0, 1, 1.9))]));
+      expect(charIndexes(rows)).toEqual([5]);
+    });
+    it('falls back to the estimate for a missing index; anchor beats word times', () => {
+      const bad = line('l', 0, 4, text, [{ index: 9, start: 0, end: 1 }]);
+      expect(charIndexes(alignChart(makeSong([chord('a', 2, 3)], [bad])))).toEqual([8]);
+      const l = line('l', 0, 4, text, wt(0, 0.4, 2.8, 3.2));
+      expect(charIndexes(alignChart(makeSong([chord('a', 2.9, 3.5)], [l], { a: { lineId: 'l', charIndex: 4 } })))).toEqual([4]);
+    });
   });
 });

@@ -11,7 +11,8 @@ export type ChordEvent = {
   alternatives?: Chord[]; // detector's runner-up guesses
 };
 
-export type LyricLine = { id: string; start: number; end: number; text: string };
+export type WordTime = { index: number; start: number; end: number }; // index into text.split()
+export type LyricLine = { id: string; start: number; end: number; text: string; words?: WordTime[] };
 
 export type Song = {
   id: string;

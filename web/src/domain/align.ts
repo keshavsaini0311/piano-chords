@@ -1,6 +1,6 @@
 // Places chords above lyric words. LRCLIB only times whole lines, so the position inside a line
 // is estimated from time; a manual anchor always wins.
-// ponytail: proportional estimate; swap for word-level timing behind the same signature later.
+// Lines with word times (line.words) put the chord on the sung word; otherwise a proportional estimate.
 import type { ChordEvent, LyricLine, Song } from './song';
 
 export type PlacedChord = { event: ChordEvent; charIndex: number };
@@ -15,6 +15,12 @@ export function wordStarts(text: string): number[] {
 }
 
 function estimateCharIndex(event: ChordEvent, line: LyricLine): number {
+  if (line.words?.length) {
+    // Last word that has started (50 ms of slack), else the first; a bad index falls through to the estimate.
+    const w = line.words.filter((x) => x.start <= event.start + 0.05).pop() ?? line.words[0];
+    const at = wordStarts(line.text)[w.index];
+    if (at !== undefined) return at;
+  }
   const ratio = (event.start - line.start) / Math.max(line.end - line.start, 1e-6);
   const target = ratio * line.text.length;
   let best = 0;
