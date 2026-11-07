@@ -130,14 +130,15 @@ flowchart LR
 | File | Does |
 |---|---|
 | `main.py` | The FastAPI app and every route. Builds the real dependencies (`Deps`) unless a test passes fakes. Reads `PC_DATA_DIR`. |
-| `jobs.py` | `JobRunner`: in-memory jobs on a single worker thread (the model needs the whole CPU). Re-submitting a song that's already imported returns "done" at once. Jobs are lost on restart, but finished songs are on disk. |
+| `jobs.py` | `JobRunner`: in-memory jobs on a single worker thread (the model needs the whole CPU). Re-submitting a song that's already imported returns "done" at once. Jobs are lost on restart, but finished songs are on disk. After an import finishes it queues a follow-up job on the same thread that splits the song into mixes (`stems.py`), so the song is playable first and the mixes appear later. |
+| `stems.py` | Demucs splits the audio into stems and saves three mixes in `mix/`: `backing` (vocals, drums and bass, without the piano and other instruments), `novocals` (drums, bass, other) and `vocals`; then sets `song.mixes`. |
 | `pipeline.py` | `run_pipeline` (§2.1), `merge_slivers`, `estimate_confidence`, `assemble`. `Deps` bundles every swappable part. |
 | `audio.py` | `video_id` (accepts every YouTube link shape), `YtDlpFetcher`, `to_analysis_wav`. |
 | `detect.py` | `ChordDetector` protocol and `LvChordiaDetector`; `detect_beats` and the tempo fix. `PC_DETECTOR` picks the model. |
 | `labels.py` | `normalize_label`: model labels → app labels. The browser never sees a model's format. |
 | `refine.py` | Chord-change timing: `fill_long_segments`, `refine_boundaries`. Measured against `eval/`. |
 | `lyrics.py` | LRCLIB client: title cleaning, several search attempts, pick by duration, LRC parsing. |
-| `store.py` | `SongStore`: the data folder. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
+| `store.py` | `SongStore`: the data folder. `update_song` takes the per-song lock and keeps the fields only the server writes (`keep_server_fields`, e.g. `mixes`), so a browser autosave can't erase them. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
 
 ### API
 
@@ -149,6 +150,7 @@ flowchart LR
 | GET / PUT | `/api/songs/{id}` | Read or save a song (the whole `song.json`). |
 | DELETE | `/api/songs/{id}` | Delete the song folder and remove it from playlists. |
 | GET | `/api/songs/{id}/audio` | The audio file, with Range support so seeking works. |
+| GET | `/api/songs/{id}/mix/{name}` | One saved mix (`backing`, `novocals` or `vocals`), with Range support like `/audio`. 404 if it hasn't been made. |
 | GET | `/api/songs/{id}/cover` | YouTube thumbnail, fetched once and cached in the song folder. |
 | POST | `/api/songs/{id}/lyrics` `{title, artist}` | Search LRCLIB again. Only searches: the browser applies the result as an undoable edit, so a slow search can't overwrite your edits. |
 | GET / PUT | `/api/playlists` | All playlists, saved as a whole. |
@@ -163,6 +165,7 @@ data/                               (server/data by default; PC_DATA_DIR moves i
   songs/<youtubeId>/
     audio.m4a                       the download
     cover.jpg                       thumbnail
+    mix/                            backing, no-vocals and vocals-only audio (from stems.py)
     detected.json                   raw model output, never edited
     song.json                       the song, with your edits (original key)
     song.json.bak, .beats.bak       backups left by the redo scripts
@@ -174,6 +177,7 @@ data/                               (server/data by default; PC_DATA_DIR moves i
 |---|---|
 | `scripts/redo_chords.py <id>` | Redo chord timing from `detected.json` with the current refine steps. Replaces your chord edits; backs up first. |
 | `scripts/redo_beats.py <id>` | Redo beats only. Keeps chords and edits. |
+| `scripts/backfill.py` | Make mixes for songs imported before stems existed. Skips songs that already have them. |
 | `eval/timing_synthetic.py` | Synthesised songs with known change times: how accurate chord-change timing is. |
 | `eval/timing_real.py`, `eval/fill_real.py` | Effect of the refine steps on your real imports. |
 | `eval/fetch_ug.py` | Fetch Ultimate Guitar charts for comparison (cached in `data/eval/`, never committed). |
@@ -246,7 +250,7 @@ the browser by older versions). `studioSession.ts` is §2.2.
 | `editor/` | `EditBar` (undo/redo, flagged chords "Next"), `ChordPopover` (fix a chord: the song's chords first, root/type picker under "More"), `LyricsFinder`. |
 | `chart/` | `ChartPreview` (chords over lyrics, or lead-sheet bars; follows playback), `ChordChip` (hover to see the keys). |
 | `judge/` | `PracticeToggle`, `PracticeStrip` (the mic loop, target notes, verdict, live score), `RunSummary` (the run card). |
-| `player/` | `PlayerBar`: play, time, scrubber, loop this change, volume, speed. |
+| `player/` | `PlayerBar`: play, time, scrubber, loop this change, volume, speed, and Mix (full song, backing track, no vocals, vocals only; shown only when the song has `mixes`). `switchMix` reloads the audio and keeps position, speed and play state; the choice is remembered per song in `viewStore`. |
 | `transpose/` | `KeyMenu`: keys ranked easiest first, difficulty, voicing, note names. |
 | `instrument/` | `diagrams.ts`: instrument → drawing (piano → `Keyboard`). |
 

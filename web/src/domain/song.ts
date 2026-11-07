@@ -1,4 +1,5 @@
 // The stored song. Always in the original key: transposing is a view, never an edit.
+import type { MixId } from './mix';
 import type { Chord } from './music';
 
 export type ChordEvent = {
@@ -22,6 +23,7 @@ export type Song = {
   chords: ChordEvent[]; // sorted by start, never overlapping
   lyrics: LyricLine[]; // may be empty
   anchors: Record<string, { lineId: string; charIndex: number }>; // manual chord placement over lyrics
+  mixes?: Exclude<MixId, 'full'>[]; // stem mixes the server has made for this song
 };
 
 export const MIN_CHORD_SEC = 0.1;

@@ -1,10 +1,12 @@
 // Bottom bar: play/pause, time, scrubber, loop the current change, speed.
+import { MIX_LABEL, nextMix, type MixId } from '../../domain/mix';
 import type { ChordEvent } from '../../domain/song';
 import type { Section } from '../../domain/sections';
 import { activeChordIndex } from '../../domain/timing';
+import { api } from '../../services/api';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
-import { useViewStore } from '../../state/viewStore';
+import { useSongView, useViewStore } from '../../state/viewStore';
 import { formatTime, useSong } from '../studio/display';
 
 const SPEEDS = [1, 0.75, 0.5];
@@ -42,6 +44,17 @@ export function loopSection(section: Section) {
   player.seek(section.start);
 }
 
+/** Swap the audio for another mix without losing the place, the speed or whether it was playing. */
+export async function switchMix(songId: string, mix: MixId) {
+  const time = player.currentTime();
+  const { playing, rate } = usePlaybackStore.getState();
+  await player.load(api.mixUrl(songId, mix));
+  player.setRate(rate);
+  player.seek(time);
+  if (playing) player.play();
+  useViewStore.getState().setMix(songId, mix);
+}
+
 export function PlayerBar() {
   const song = useSong();
   const playing = usePlaybackStore((s) => s.playing);
@@ -49,6 +62,7 @@ export function PlayerBar() {
   const time = usePlaybackStore((s) => s.time);
   const rate = usePlaybackStore((s) => s.rate);
   const loop = usePlaybackStore((s) => s.loop);
+  const mix = useSongView(song.id).mix ?? 'full';
   const volume = useViewStore((s) => s.volume);
   const setVolume = (v: number) => {
     player.setVolume(v);
@@ -90,6 +104,11 @@ export function PlayerBar() {
       <button className="btn" onClick={() => setRate(SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length])} title="Tap to change speed (pitch stays the same)">
         Speed {rate * 100}%
       </button>
+      {!!song.mixes?.length && (
+        <button className="btn" onClick={() => switchMix(song.id, nextMix(mix, ['full', ...song.mixes!]))} title="Mix: tap to switch between the full song, a backing track, no vocals and vocals only">
+          {MIX_LABEL[mix]}
+        </button>
+      )}
     </footer>
   );
 }

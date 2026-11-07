@@ -23,7 +23,8 @@ export function openStudio(songId: string, onError: (message: string) => void, o
     .then(async (song) => {
       if (closed) return;
       useSongStore.getState().load(song);
-      await player.load(api.audioUrl(songId));
+      const saved = useViewStore.getState().perSong[songId]?.mix ?? 'full';
+      await player.load(api.mixUrl(songId, saved === 'full' || song.mixes?.includes(saved) ? saved : 'full'));
       if (closed) return;
       player.setRate(playback.rate);
       player.setVolume(useViewStore.getState().volume);

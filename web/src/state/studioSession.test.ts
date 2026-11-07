@@ -1,17 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/player', () => ({
-  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn(), play: vi.fn(), seek: vi.fn() },
+  player: { load: vi.fn().mockResolvedValue(undefined), setRate: vi.fn(), setVolume: vi.fn(), onEnded: vi.fn(), pause: vi.fn(), play: vi.fn(), seek: vi.fn(), currentTime: vi.fn(() => 42) },
 }));
 vi.mock('../services/clock', () => ({ startClock: vi.fn(() => vi.fn()) }));
 
 import { player } from '../services/player';
 import { api } from '../services/api';
 import { startClock } from '../services/clock';
-import { loopSection, togglePlay } from '../features/player/PlayerBar';
+import { loopSection, switchMix, togglePlay } from '../features/player/PlayerBar';
 import { usePlaybackStore } from './playbackStore';
 import { openStudio } from './studioSession';
 import { useSongStore } from './songStore';
+import { useViewStore } from './viewStore';
 
 describe('openStudio', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -46,5 +47,38 @@ describe('loopSection', () => {
     expect(player.seek).toHaveBeenCalledWith(10);
     loopSection(section);
     expect(usePlaybackStore.getState().loop).toBeNull();
+  });
+});
+
+describe('mixes', () => {
+  afterEach(() => vi.restoreAllMocks());
+  const open = async (mixes?: string[]) => {
+    vi.spyOn(api, 'getSong').mockResolvedValue({ id: 'abcdefghijk', chords: [], lyrics: [], beats: [], anchors: {}, mixes } as never);
+    vi.mocked(player.load).mockClear();
+    const close = openStudio('abcdefghijk', () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    close();
+  };
+
+  it('opens with the saved mix when the song has it', async () => {
+    useViewStore.setState({ perSong: { abcdefghijk: { semitones: 0, mix: 'backing' } } });
+    await open(['backing', 'novocals', 'vocals']);
+    expect(player.load).toHaveBeenCalledWith('/api/songs/abcdefghijk/mix/backing');
+  });
+
+  it('falls back to the full song when the saved mix is missing', async () => {
+    useViewStore.setState({ perSong: { abcdefghijk: { semitones: 0, mix: 'backing' } } });
+    await open();
+    expect(player.load).toHaveBeenCalledWith(api.audioUrl('abcdefghijk'));
+  });
+
+  it('switchMix keeps position and rate', async () => {
+    usePlaybackStore.setState({ playing: true, rate: 0.75 });
+    await switchMix('abcdefghijk', 'vocals');
+    expect(player.load).toHaveBeenLastCalledWith('/api/songs/abcdefghijk/mix/vocals');
+    expect(player.setRate).toHaveBeenLastCalledWith(0.75);
+    expect(player.seek).toHaveBeenLastCalledWith(42);
+    expect(player.play).toHaveBeenCalled();
+    expect(useViewStore.getState().perSong.abcdefghijk.mix).toBe('vocals');
   });
 });
