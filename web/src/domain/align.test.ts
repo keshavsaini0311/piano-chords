@@ -55,9 +55,10 @@ describe('alignChart', () => {
       expect(charIndexes(rows)).toEqual([8]);
     });
     it('before the first word / after the last', () => {
-      const l = line('l', -1, 4, text, wt(0, 0.4, 2.8, 3.2));
-      expect(charIndexes(alignChart(makeSong([chord('a', -0.5, 0)], [l])))).toEqual([0]);
-      expect(charIndexes(alignChart(makeSong([chord('a', 3.9, 4)], [l])))).toEqual([14]);
+      const early = line('l', 0, 4, text, [{ index: 2, start: 1, end: 1.3 }, { index: 3, start: 2, end: 2.3 }]);
+      expect(charIndexes(alignChart(makeSong([chord('a', 0.1, 0.5)], [early])))).toEqual([8]);
+      const late = line('l', 0, 4, text, wt(0, 0.4));
+      expect(charIndexes(alignChart(makeSong([chord('a', 3.9, 4)], [late])))).toEqual([4]);
     });
     it('index counts punctuation words', () => {
       const rows = alignChart(makeSong([chord('a', 2, 3)], [line('l', 0, 4, 'go \u2014 now', wt(0, 1, 1.9))]));
