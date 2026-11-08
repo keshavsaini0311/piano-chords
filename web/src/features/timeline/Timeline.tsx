@@ -3,8 +3,9 @@
 // The track follows time through a CSS transform set outside React, so playback never re-renders
 // the chord blocks; only the active-chord highlight re-renders, once per chord change.
 // Each chord has a handle on its left edge: drag it to move the change (snaps to beats).
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { moveChordStart } from '../../domain/edits';
+import { findSections } from '../../domain/sections';
 import { isUnsure, snapToBeat } from '../../domain/timing';
 import { api } from '../../services/api';
 import { player } from '../../services/player';
@@ -14,6 +15,7 @@ import { useSongStore } from '../../state/songStore';
 import { useJudgeStore } from '../../state/judgeStore';
 import { useViewStore } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
+import { loopSection } from '../player/PlayerBar';
 import { ChordPopover } from '../editor/ChordPopover';
 import { formatTime, useActiveIndex, useDisplay, useSong } from '../studio/display';
 
@@ -54,6 +56,8 @@ export function Timeline() {
   const active = useActiveIndex();
   const { selectedChordId, selectChord } = useViewStore();
   const apply = useSongStore((s) => s.apply);
+  const loop = usePlaybackStore((s) => s.loop);
+  const sections = useMemo(() => findSections(song), [song]);
   const grades = useJudgeStore((s) => s.results);
   const { label } = useDisplay();
   const [peaks, setPeaks] = useState<number[]>([]);
@@ -142,6 +146,22 @@ export function Timeline() {
             ))}
           </div>
           <div className="audio-row" />
+          {sections.length > 0 && (
+            <div className="section-lane">
+              {sections.map((s) => (
+                <button
+                  key={s.id}
+                  className="section-block"
+                  style={{ left: px(s.start), width: px(s.end - s.start) }}
+                  aria-pressed={loop?.start === s.start && loop.end === s.end}
+                  title={`Loop ${s.label} (S)`}
+                  onClick={() => !justPanned.current && loopSection(s)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="chord-lane">
             {song.chords.map((c, i) => (
               <button

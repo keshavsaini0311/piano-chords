@@ -70,3 +70,24 @@ export function snapToBeat(time: number, beats: number[], tolerance = SNAP_SEC):
   const nearest = candidates.sort((a, b) => Math.abs(a - time) - Math.abs(b - time))[0];
   return nearest !== undefined && Math.abs(nearest - time) <= tolerance ? nearest : time;
 }
+
+/** Wait-for-me: the gate time if playback crossed it in one small step (not a seek), else null. */
+export function gateStop(prev: number, time: number, gateAt: number | null): number | null {
+  return gateAt !== null && prev < gateAt && gateAt <= time && time - prev < 0.25 ? gateAt : null;
+}
+
+/** Start of the first real chord after `index` that lasts at least half a beat; N.C. and blips are never waited on.
+ * In a loop, a gate at or past the loop end becomes the loop start: the restart is the next change. */
+export function nextGateAt(chords: ChordEvent[], index: number, songBeat: number, loop: Loop | null = null): number | null {
+  const next = chords.slice(index + 1).find((c) => c.chord.kind === 'chord' && c.end - c.start >= songBeat / 2);
+  const at = next ? next.start : null;
+  return loop && (at === null || at >= loop.end) ? loop.start : at;
+}
+
+export type WaitAction = 'none' | 'setGate' | 'resume' | 'release' | 'clear';
+
+export function waitAction(s: { waitMode: boolean; playing: boolean; waiting: boolean; time: number; gate: number | null; gateAt: number | null; hit: boolean; targetStart: number | null }): WaitAction {
+  if (!s.waitMode) return s.waiting ? 'resume' : s.gate !== null ? 'clear' : 'none';
+  if (s.waiting) return s.gate !== null && Math.abs(s.time - s.gate) > 0.05 ? 'release' : s.hit && s.targetStart === s.gate ? 'resume' : 'none'; // a hit counts only for the chord that starts at the gate
+  return s.playing && s.gate !== s.gateAt ? 'setGate' : 'none';
+}

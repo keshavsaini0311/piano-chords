@@ -9,12 +9,14 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from app.align import CtcAligner, align_song
 from app.audio import YtDlpFetcher
 from app.detect import detect_beats, get_detector
 from app.jobs import JobRunner
 from app.lyrics import LrclibLyrics
 from app.pipeline import Deps
-from app.store import SongStore
+from app.stems import DemucsSeparator, MIXES
+from app.store import SongStore, keep_server_fields
 
 DATA_DIR = Path(os.environ.get("PC_DATA_DIR") or Path(__file__).resolve().parent.parent / "data").expanduser()
 
@@ -40,7 +42,8 @@ class Playlist(BaseModel):
 
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or Deps(
-        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR)
+        fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR),
+        separator=DemucsSeparator(), aligner=CtcAligner(),
     )
     store, runner = deps.store, JobRunner(deps)
     app = FastAPI(title="piano-chords")
@@ -79,7 +82,20 @@ def create_app(deps: Deps | None = None) -> FastAPI:
     @app.put("/api/songs/{song_id}")
     def save_song(song_id: str, song: dict = Body(...)):
         existing_song(song_id)
-        store.write_song(song_id, {**song, "id": song_id})
+        incoming = {**song, "id": song_id}
+        lyrics_changed = False
+
+        def merge(stored: dict) -> dict:
+            nonlocal lyrics_changed
+            merged, lyrics_changed = keep_server_fields(stored, incoming)
+            return merged
+
+        try:
+            store.update_song(song_id, merge)
+        except FileNotFoundError:
+            raise HTTPException(404, "Song not found")
+        if lyrics_changed and deps.aligner:
+            runner.run_later(align_song, song_id, deps)
         return {"ok": True}
 
     @app.get("/api/songs/{song_id}/audio")
@@ -89,6 +105,14 @@ def create_app(deps: Deps | None = None) -> FastAPI:
         if not audio:
             raise HTTPException(404, "Audio not found")
         return FileResponse(audio)  # supports Range, which the <audio> element needs to seek
+
+    @app.get("/api/songs/{song_id}/mix/{name}")
+    def get_mix(song_id: str, name: str):
+        existing_song(song_id)
+        path = store.song_dir(song_id) / "mix" / f"{name}.m4a"
+        if name not in MIXES or not path.exists():
+            raise HTTPException(404, "Mix not found")
+        return FileResponse(path, media_type="audio/mp4")
 
     @app.post("/api/songs/{song_id}/lyrics")
     def search_lyrics(song_id: str, request: LyricsRequest):

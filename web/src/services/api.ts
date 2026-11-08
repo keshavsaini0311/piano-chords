@@ -1,5 +1,6 @@
 // The only code that talks to the server. Wire format uses label strings; the app uses Chord objects.
 // Converting here keeps every other module free of the server's shape.
+import type { MixId } from '../domain/mix';
 import { accidentalsForKey, estimateKey, formatChord, parseChord } from '../domain/music';
 import type { Playlist } from '../domain/playlists';
 import type { LyricLine, Song } from '../domain/song';
@@ -53,6 +54,7 @@ export const api = {
   searchLyrics: async (id: string, title: string, artist: string) =>
     (await request<{ lyrics: LyricLine[] }>(`/api/songs/${id}/lyrics`, { method: 'POST', body: JSON.stringify({ title, artist }) })).lyrics,
   audioUrl: (id: string) => `/api/songs/${id}/audio`,
+  mixUrl: (id: string, mix: MixId) => (mix === 'full' ? `/api/songs/${id}/audio` : `/api/songs/${id}/mix/${mix}`),
   coverUrl: (id: string) => `/api/songs/${id}/cover`,
   deleteSong: (id: string) => request(`/api/songs/${id}`, { method: 'DELETE' }),
   listPlaylists: () => request<Playlist[]>('/api/playlists'),

@@ -23,7 +23,8 @@ export function openStudio(songId: string, onError: (message: string) => void, o
     .then(async (song) => {
       if (closed) return;
       useSongStore.getState().load(song);
-      await player.load(api.audioUrl(songId));
+      const saved = useViewStore.getState().perSong[songId]?.mix ?? 'full';
+      await player.load(api.mixUrl(songId, saved === 'full' || song.mixes?.includes(saved) ? saved : 'full'));
       if (closed) return;
       player.setRate(playback.rate);
       player.setVolume(useViewStore.getState().volume);
@@ -31,7 +32,14 @@ export function openStudio(songId: string, onError: (message: string) => void, o
         usePlaybackStore.getState().setPlaying(false);
         onEnded();
       });
-      stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop);
+      stopClock = startClock(player, playback.setTime, () => usePlaybackStore.getState().loop,
+        () => usePlaybackStore.getState().gate,
+        (at) => {
+          player.pause();
+          player.seek(at);
+          usePlaybackStore.getState().setWaiting(true);
+        },
+      );
       if (autoplayNext) {
         autoplayNext = false;
         player.play();
@@ -47,6 +55,8 @@ export function openStudio(songId: string, onError: (message: string) => void, o
     player.pause();
     playback.setPlaying(false);
     playback.setLoop(null);
+    playback.setGate(null);
+    playback.setWaiting(false);
     playback.setTime(0);
     useViewStore.getState().selectChord(null);
   };

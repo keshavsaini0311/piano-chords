@@ -2,10 +2,11 @@
 // Persisted to settings.json in the server's data folder (see settingsStorage.ts).
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { MixId } from '../domain/mix';
 import { defaultProfile, type Profile } from '../domain/profile';
 import { serverSettingsStorage } from './settingsStorage';
 
-export type SongView = { semitones: number };
+export type SongView = { semitones: number; mix?: MixId };
 export const DEFAULT_SONG_VIEW: SongView = { semitones: 0 };
 
 type ViewState = {
@@ -15,6 +16,7 @@ type ViewState = {
   volume: number; // 0..1
   setVolume: (volume: number) => void;
   setSemitones: (songId: string, semitones: number) => void;
+  setMix: (songId: string, mix: MixId) => void;
   updateProfile: (patch: Partial<Profile>) => void;
   selectChord: (id: string | null) => void;
 };
@@ -33,6 +35,8 @@ export const useViewStore = create<ViewState>()(
       setVolume: (volume) => set({ volume: Math.min(1, Math.max(0, volume)) }),
       setSemitones: (songId, semitones) =>
         set((s) => ({ perSong: { ...s.perSong, [songId]: { ...s.perSong[songId], semitones: wrapSemitones(semitones) } } })),
+      setMix: (songId, mix) =>
+        set((s) => ({ perSong: { ...s.perSong, [songId]: { ...(s.perSong[songId] ?? DEFAULT_SONG_VIEW), mix } } })),
       updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
       selectChord: (selectedChordId) => set({ selectedChordId }),
     }),

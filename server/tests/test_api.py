@@ -44,7 +44,7 @@ class FakeLyrics:
         return self.lines
 
 
-def make_client(tmp_path, lyrics=None, gate=None):
+def make_client(tmp_path, lyrics=None, gate=None, separator=None, aligner=None):
     deps = Deps(
         fetcher=FakeFetcher(),
         detector=FakeDetector(gate),
@@ -53,6 +53,8 @@ def make_client(tmp_path, lyrics=None, gate=None):
         store=SongStore(tmp_path),
         prepare=lambda audio: audio,
         refine=lambda wav, segments, beats: segments,
+        separator=separator,
+        aligner=aligner,
     )
     return TestClient(create_app(deps))
 
@@ -235,3 +237,32 @@ def test_cover_is_served_from_the_song_folder(tmp_path):
     (tmp_path / "songs" / SONG_ID / "cover.jpg").write_bytes(b"jpeg-bytes")
     response = client.get(f"/api/songs/{SONG_ID}/cover")
     assert response.status_code == 200 and response.content == b"jpeg-bytes"
+
+
+def test_put_keeps_server_written_fields(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song = client.get(f"/api/songs/{SONG_ID}").json()
+    mixes = ["backing", "novocals", "vocals"]
+    SongStore(tmp_path).update_song(SONG_ID, lambda s: {**s, "mixes": mixes})
+    assert "mixes" not in song
+    assert client.put(f"/api/songs/{SONG_ID}", json=song).status_code == 200
+    assert client.get(f"/api/songs/{SONG_ID}").json()["mixes"] == mixes
+
+
+def test_put_of_a_missing_song_is_404_and_creates_no_folder(tmp_path):
+    client = make_client(tmp_path)
+    assert client.put(f"/api/songs/{SONG_ID}", json={"title": "x"}).status_code == 404
+    assert not (tmp_path / "songs" / SONG_ID).exists()
+
+
+def test_put_keeps_words_on_unchanged_lines_and_drops_them_on_reworded_ones(tmp_path):
+    client = make_client(tmp_path)
+    wait_for(client, client.post("/api/songs", json={"url": URL}).json()["jobId"])
+    song = client.get(f"/api/songs/{SONG_ID}").json()
+    words = [{"index": 0, "start": 0.5, "end": 1.0}]
+    SongStore(tmp_path).update_song(SONG_ID, lambda s: {**s, "lyrics": [{**l, "words": words} for l in s["lyrics"]]})
+    song["lyrics"][1]["text"] = "something else"
+    assert client.put(f"/api/songs/{SONG_ID}", json=song).status_code == 200
+    saved = client.get(f"/api/songs/{SONG_ID}").json()["lyrics"]
+    assert saved[0]["words"] == words and "words" not in saved[1]

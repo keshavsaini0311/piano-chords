@@ -1,15 +1,28 @@
 // Bottom bar: play/pause, time, scrubber, loop the current change, speed.
+import { MIX_LABEL, nextMix, type MixId } from '../../domain/mix';
 import type { ChordEvent } from '../../domain/song';
+import type { Section } from '../../domain/sections';
 import { activeChordIndex } from '../../domain/timing';
+import { api } from '../../services/api';
+import { holdClock } from '../../services/clock';
 import { player } from '../../services/player';
 import { usePlaybackStore } from '../../state/playbackStore';
-import { useViewStore } from '../../state/viewStore';
+import { useSongView, useViewStore } from '../../state/viewStore';
 import { formatTime, useSong } from '../studio/display';
 
 const SPEEDS = [1, 0.75, 0.5];
 
+/** Leave the wait-for-me stop: set the next gate, then play on. */
+export function resumeFromWait(nextGate: number | null) {
+  const { setGate, setWaiting } = usePlaybackStore.getState();
+  setGate(nextGate);
+  setWaiting(false);
+  player.play();
+}
+
 export function togglePlay() {
-  const { playing, setPlaying } = usePlaybackStore.getState();
+  const { playing, waiting, setPlaying, setWaiting } = usePlaybackStore.getState();
+  if (playing && waiting) setWaiting(false);
   if (playing) player.pause();
   else player.play();
   setPlaying(!playing);
@@ -24,6 +37,42 @@ export function toggleLoop(chords: ChordEvent[]) {
   if (chords[i]) setLoop({ start: chords[i].start, end: last.end });
 }
 
+/** Loops a section from its start; clicking the section that is already looping turns the loop off. */
+export function loopSection(section: Section) {
+  const { loop, setLoop } = usePlaybackStore.getState();
+  if (loop?.start === section.start && loop.end === section.end) return setLoop(null);
+  setLoop({ start: section.start, end: section.end });
+  player.seek(section.start);
+}
+
+/** Swap the audio for another mix without losing the place, the speed or whether it was playing. */
+let switching = false;
+export async function switchMix(songId: string, mix: MixId) {
+  if (switching || usePlaybackStore.getState().waiting) return; // while waiting the audio is paused at the gate: leave it there
+  switching = true;
+  holdClock(true);
+  const time = player.currentTime();
+  const { rate } = usePlaybackStore.getState();
+  const previous = useViewStore.getState().perSong[songId]?.mix ?? 'full';
+  const restore = () => {
+    player.setRate(rate);
+    player.seek(time);
+    const { playing, waiting } = usePlaybackStore.getState();
+    if (playing && !waiting) player.play();
+  };
+  try {
+    await player.load(api.mixUrl(songId, mix));
+    restore();
+    useViewStore.getState().setMix(songId, mix);
+  } catch {
+    // The source was already swapped: put the previous mix back; the label keeps showing it.
+    await player.load(api.mixUrl(songId, previous)).then(restore, () => {});
+  } finally {
+    holdClock(false);
+    switching = false;
+  }
+}
+
 export function PlayerBar() {
   const song = useSong();
   const playing = usePlaybackStore((s) => s.playing);
@@ -31,6 +80,8 @@ export function PlayerBar() {
   const time = usePlaybackStore((s) => s.time);
   const rate = usePlaybackStore((s) => s.rate);
   const loop = usePlaybackStore((s) => s.loop);
+  const waiting = usePlaybackStore((s) => s.waiting);
+  const mix = useSongView(song.id).mix ?? 'full';
   const volume = useViewStore((s) => s.volume);
   const setVolume = (v: number) => {
     player.setVolume(v);
@@ -72,6 +123,11 @@ export function PlayerBar() {
       <button className="btn" onClick={() => setRate(SPEEDS[(SPEEDS.indexOf(rate) + 1) % SPEEDS.length])} title="Tap to change speed (pitch stays the same)">
         Speed {rate * 100}%
       </button>
+      {!!song.mixes?.length && (
+        <button className="btn" disabled={waiting} onClick={() => switchMix(song.id, nextMix(mix, ['full', ...song.mixes!]))} title="Mix: tap to switch between the full song, a backing track, no vocals and vocals only">
+          {MIX_LABEL[mix]}
+        </button>
+      )}
     </footer>
   );
 }
