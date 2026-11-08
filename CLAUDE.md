@@ -5,7 +5,7 @@ the browser lets you play along, transpose, fix chords and practise with the mic
 
 Read first: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (what every file does) and
 [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) (tokens, components, copy). Planned work:
-[TODO.md](TODO.md), [docs/ROADMAP-DESIGN.md](docs/ROADMAP-DESIGN.md), plans in `docs/superpowers/plans/`.
+[TODO.md](TODO.md), [docs/ROADMAP-DESIGN.md](docs/ROADMAP-DESIGN.md), plans in `docs/superpowers/plans/` (local, git-ignored).
 
 ## Commands
 

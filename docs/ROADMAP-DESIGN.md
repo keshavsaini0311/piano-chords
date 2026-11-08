@@ -1,6 +1,6 @@
 # piano-chords: design for the next five features
 
-Status: decided (7 Nov 2026), **minimum-change version**. Plans: `docs/superpowers/plans/2026-11-07-*`
+Status: decided (7 Nov 2026), **minimum-change version**. Plans (local, git-ignored): `docs/superpowers/plans/2026-11-07-*`
 (start with the runbook). The two model choices were proven on this Mac first; working reference
 code is in `docs/superpowers/plans/spikes/`. Nothing here is built yet.
 Read with [ARCHITECTURE.md](ARCHITECTURE.md) (how the app works today).
