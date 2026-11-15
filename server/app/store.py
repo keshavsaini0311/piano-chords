@@ -24,12 +24,14 @@ def _chord_time(song: dict) -> dict[str, float]:
     return seconds
 
 
+SERVER_FIELDS = ("mixes", "melody")
+
+
 def keep_server_fields(stored: dict, incoming: dict) -> tuple[dict, bool]:
-    """A browser save must not erase what only the server writes: `mixes` and each lyric line's `words`
+    """A browser save must not erase what only the server writes: `mixes`, `melody` and each lyric line's `words`
     (kept only while the line's id and text are unchanged). True when a non-empty line is new or reworded."""
-    merged = {k: v for k, v in incoming.items() if k != "mixes"}
-    if "mixes" in stored:
-        merged["mixes"] = stored["mixes"]
+    merged = {k: v for k, v in incoming.items() if k not in SERVER_FIELDS}
+    merged.update({k: stored[k] for k in SERVER_FIELDS if k in stored})
     old = {(l.get("id"), l.get("text")): l for l in stored.get("lyrics", [])}
     changed = False
     lyrics = []
