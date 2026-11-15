@@ -138,8 +138,9 @@ flowchart LR
 | `labels.py` | `normalize_label`: model labels → app labels. The browser never sees a model's format. |
 | `refine.py` | Chord-change timing: `fill_long_segments`, `refine_boundaries`. Measured against `eval/`. |
 | `align.py` | Word-level lyric timing: `CtcAligner` (Meta MMS ONNX forced aligner, model cached in `~/.cache/piano-chords/`) times each word inside its line's window; a line keeps `words` only if it passes a confidence gate. `align_song` runs after import and, via `run_later`, when a PUT changes the lyrics. |
+| `melody.py` | The tune, one note at a time: `PyinMelody` tracks the pitch of the `vocals` mix with librosa's pyin (the whole song when it has hardly any singing); `notes_from_pitches` smooths readings, drops slides and folds octave slips back toward the neighbouring notes. `melody_song` splits stems first if the song has none. It runs lazily: the first `GET /api/songs/{id}` of a song without `melody` queues it on the worker (once per server run), and the browser polls until it lands. |
 | `lyrics.py` | LRCLIB client: title cleaning, several search attempts, pick by duration, LRC parsing. |
-| `store.py` | `SongStore`: the data folder. `update_song` does read-change-write under one global `RLock`. The PUT route merges with `keep_server_fields`, which keeps the fields only the server writes (`mixes`, and `words` on lines whose id and text are unchanged), so a browser autosave can't erase them; when the lyrics changed it queues re-alignment. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
+| `store.py` | `SongStore`: the data folder. `update_song` does read-change-write under one global `RLock`. The PUT route merges with `keep_server_fields`, which keeps the fields only the server writes (`mixes`, `melody`, and `words` on lines whose id and text are unchanged), so a browser autosave can't erase them; when the lyrics changed it queues re-alignment. Reads and writes song, detected, settings and playlist files atomically; the library list includes `chordTime` (seconds per chord) so the browser can show keys without loading each song. |
 
 ### API
 
@@ -148,7 +149,7 @@ flowchart LR
 | POST | `/api/songs` `{url}` | Start an import. Returns `{songId, jobId}`. |
 | GET | `/api/jobs/{id}` | Import progress: `{state, stage, error?}`. |
 | GET | `/api/songs` | Library list: id, title, artist, duration, `chordTime`, `hasLyrics`. |
-| GET / PUT | `/api/songs/{id}` | Read or save a song (the whole `song.json`). |
+| GET / PUT | `/api/songs/{id}` | Read or save a song (the whole `song.json`). A GET of a song with no `melody` yet queues finding it. |
 | DELETE | `/api/songs/{id}` | Delete the song folder and remove it from playlists. |
 | GET | `/api/songs/{id}/audio` | The audio file, with Range support so seeking works. |
 | GET | `/api/songs/{id}/mix/{name}` | One saved mix (`backing`, `novocals` or `vocals`), with Range support like `/audio`. 404 if it hasn't been made. |
@@ -168,7 +169,7 @@ data/                               (server/data by default; PC_DATA_DIR moves i
     cover.jpg                       thumbnail
     mix/                            backing, no-vocals and vocals-only audio (from stems.py)
     detected.json                   raw model output, never edited
-    song.json                       the song, with your edits (original key)
+    song.json                       the song, with your edits (original key); `melody` once found
     song.json.bak, .beats.bak       backups left by the redo scripts
 ```
 
@@ -213,6 +214,8 @@ tests are plain function tests.
 | `suggest.ts` | When fixing a chord: the song's own chords, most-played first. |
 | `judge.ts` | Mic checking. `chromaFromSpectrum` (FFT → 12 note energies, overtones discounted), `judge` (right / off and which notes were heard), `createSettler` (steadies readings and latches "right" for the chord). |
 | `score.ts` | Practice scoring. `createRunTracker` (one attempt per chord while playing), `judgementFor` (Perfect / Great / Good / Late; windows scale with tempo via `beatSeconds`), `summarize`, `letterFor`, `tipsFor`. |
+| `melody.ts` | The melody as a view: `melodyNotes` (transpose; easy drops notes under 0.15 s and fits the tune to your keys, whole octaves first), `handRanges` (Both: chords in the bottom octave, tune above), `displayRange`, `soundingAt`. |
+| `keyboard.ts` | `keyLayout`: where each key sits on a drawn keyboard, shared by the falling lanes and the keys. |
 | `sections.ts` | `findSections` (verse/chorus from repeated lyrics; derived, never stored), `sectionAt`. |
 | `mastery.ts` | Per-chord skill level from your practice runs (`mastery`), songs you can play now (`playableSongs`), the chord to learn next (`nextToLearn`). |
 | `playlists.ts` | Playlist edits, `nextSong`, `songKeySummary` (key and easiest key from `chordTime`). |
@@ -233,8 +236,8 @@ tests are plain function tests.
 
 | Store | Holds | Saved? |
 |---|---|---|
-| `songStore` | The open song, undo/redo stacks, save state. `apply(edit)` is the only way to change it. | Yes: autosave PUTs the song (`subscribeAutosave`). |
-| `viewStore` | Your profile, per-song transpose, volume, selected chord. | Yes: `settings.json` → `piano-chords:view`. |
+| `songStore` | The open song, undo/redo stacks, save state. `apply(edit)` is the only way to change it; `mergeServer` patches in fields the server adds later (`melody`) across the history, without an autosave. | Yes: autosave PUTs the song (`subscribeAutosave`). |
+| `viewStore` | Your profile, per-song transpose, volume, selected chord, play mode (Chords / Melody / Both). | Yes: `settings.json` → `piano-chords:view`. |
 | `playbackStore` | Time, playing, speed, loop, the wait-for-me `gate` and `waiting`. `time` changes 60 times a second. | No. |
 | `judgeStore` | Mic on/off, `waitMode`, level, current verdict, grade per chord this session. | No. |
 | `practiceStore` | Runs per song (last 10), live score, the open summary card. | Yes: `settings.json` → `piano-chords:practice`. |
@@ -250,6 +253,7 @@ the browser by older versions). `studioSession.ts` is §2.2.
 | `studio/` | `StudioScreen` (layout and lifetime), `StudioHeader` (back, title, playlist "Next", Check my playing, Key), `display.ts` (hooks turning the song into what's shown: labels, voicings, active chord), `useShortcuts`. |
 | `timeline/` | `Timeline`: the scrolling waveform, section band (click loops a section), chord lane and lyric lane with the playhead fixed in the middle. Drag to move through the song, drag a chord's left edge to move the change, click to select. |
 | `editor/` | `EditBar` (undo/redo, flagged chords "Next"), `ChordPopover` (fix a chord: the song's chords first, root/type picker under "More"), `LyricsFinder`. |
+| `falling/` | `PlayModeSwitch` (Chords · Melody · Both in the header, `N`; Melody-only turns mic checking off, since it grades chords) and `FallingNotes`: a canvas drawn each frame from `playbackStore.getState()`, notes falling onto your key range (`useFallingNotes` in `studio/display.ts`), beat and bar lines, the sounding key lit with its name, the next key dotted. Polls for the melody while the server finds it. |
 | `chart/` | `ChartPreview` (chords over lyrics, or lead-sheet bars; follows playback), `ChordChip` (hover to see the keys). |
 | `judge/` | `PracticeToggle`, `PracticeStrip` (the mic loop, target notes, verdict, live score), `RunSummary` (the run card). |
 | `player/` | `PlayerBar`: play, time, scrubber, loop this change, volume, speed, and Mix (full song, backing track, no vocals, vocals only; shown only when the song has `mixes`). `switchMix` reloads the audio and keeps position, speed and play state; the choice is remembered per song in `viewStore`. |

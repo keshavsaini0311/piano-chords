@@ -14,6 +14,7 @@ from app.audio import YtDlpFetcher
 from app.detect import detect_beats, get_detector
 from app.jobs import JobRunner
 from app.lyrics import LrclibLyrics
+from app.melody import PyinMelody, melody_song
 from app.pipeline import Deps
 from app.stems import DemucsSeparator, MIXES
 from app.store import SongStore, keep_server_fields
@@ -43,7 +44,7 @@ class Playlist(BaseModel):
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or Deps(
         fetcher=YtDlpFetcher(), detector=get_detector(), lyrics=LrclibLyrics(), beats=detect_beats, store=SongStore(DATA_DIR),
-        separator=DemucsSeparator(), aligner=CtcAligner(),
+        separator=DemucsSeparator(), aligner=CtcAligner(), melody=PyinMelody(),
     )
     store, runner = deps.store, JobRunner(deps)
     app = FastAPI(title="piano-chords")
@@ -75,9 +76,15 @@ def create_app(deps: Deps | None = None) -> FastAPI:
     def list_songs():
         return store.list_songs()
 
+    melody_tried: set[str] = set()  # ponytail: in memory, so a failed melody is retried only after a restart
+
     @app.get("/api/songs/{song_id}")
     def get_song(song_id: str):
-        return existing_song(song_id)
+        song = existing_song(song_id)
+        if "melody" not in song and deps.melody and song_id not in melody_tried:  # the browser polls until it lands
+            melody_tried.add(song_id)
+            runner.run_later(melody_song, song_id, deps)
+        return song
 
     @app.put("/api/songs/{song_id}")
     def save_song(song_id: str, song: dict = Body(...)):

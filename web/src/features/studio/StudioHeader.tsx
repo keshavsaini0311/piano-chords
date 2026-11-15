@@ -3,6 +3,7 @@ import { openLibrary } from '../../App';
 import { useSongView } from '../../state/viewStore';
 import { ChordName } from '../../ui/ChordName';
 import type { Playlist } from '../../domain/playlists';
+import { PlayModeSwitch } from '../falling/PlayModeSwitch';
 import { PracticeToggle } from '../judge/Practice';
 import { KeyMenu } from '../transpose/KeyMenu';
 import { useDisplay, useSong } from './display';
@@ -32,6 +33,7 @@ export function StudioHeader({ playlist, songId, onNext }: Props) {
           <button className="btn" onClick={onNext ?? undefined} disabled={!onNext} title="Plays automatically when this song ends">Next ›</button>
         </div>
       )}
+      <PlayModeSwitch />
       <PracticeToggle />
       <div className="key-control">
         <button className="key-button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-haspopup="dialog">

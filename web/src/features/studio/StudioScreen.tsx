@@ -7,6 +7,8 @@ import { api } from '../../services/api';
 import { useSongStore } from '../../state/songStore';
 import { openStudio, requestAutoplay } from '../../state/studioSession';
 import { ChartPreview } from '../chart/ChartPreview';
+import { FallingNotes } from '../falling/FallingNotes';
+import { useViewStore } from '../../state/viewStore';
 import { LyricsFinder } from '../editor/LyricsFinder';
 import { EditBar } from '../editor/EditBar';
 import { PracticeStrip } from '../judge/Practice';
@@ -20,6 +22,7 @@ import { useShortcuts } from './useShortcuts';
 export function StudioScreen({ songId, playlistId }: { songId: string; playlistId: string | null }) {
   const song = useSongStore((s) => (s.song?.id === songId ? s.song : null));
   const listening = useJudgeStore((s) => s.listening);
+  const chords = useViewStore((s) => s.playMode === 'chords');
   const [error, setError] = useState<string | null>(null);
   useShortcuts();
 
@@ -54,9 +57,15 @@ export function StudioScreen({ songId, playlistId }: { songId: string; playlistI
       </div>
       <div className="studio-body">
         <main className="studio-main">
-          {song.lyrics.length === 0 && <LyricsFinder />}
-          <ChartPreview />
-          {song.lyrics.length > 0 && <LyricsFinder />}
+          {chords ? (
+            <>
+              {song.lyrics.length === 0 && <LyricsFinder />}
+              <ChartPreview />
+              {song.lyrics.length > 0 && <LyricsFinder />}
+            </>
+          ) : (
+            <FallingNotes />
+          )}
         </main>
       </div>
       <PlayerBar />

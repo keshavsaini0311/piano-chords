@@ -6,6 +6,7 @@ import type { MixId } from '../domain/mix';
 import { defaultProfile, type Profile } from '../domain/profile';
 import { serverSettingsStorage } from './settingsStorage';
 
+export type PlayMode = 'chords' | 'melody' | 'both'; // what you play: the chart, falling notes for the tune, or both hands
 export type SongView = { semitones: number; mix?: MixId };
 export const DEFAULT_SONG_VIEW: SongView = { semitones: 0 };
 
@@ -14,6 +15,8 @@ type ViewState = {
   perSong: Record<string, SongView>;
   selectedChordId: string | null;
   volume: number; // 0..1
+  playMode: PlayMode;
+  setPlayMode: (playMode: PlayMode) => void;
   setVolume: (volume: number) => void;
   setSemitones: (songId: string, semitones: number) => void;
   setMix: (songId: string, mix: MixId) => void;
@@ -32,6 +35,8 @@ export const useViewStore = create<ViewState>()(
       perSong: {},
       selectedChordId: null,
       volume: 1,
+      playMode: 'chords',
+      setPlayMode: (playMode) => set({ playMode }),
       setVolume: (volume) => set({ volume: Math.min(1, Math.max(0, volume)) }),
       setSemitones: (songId, semitones) =>
         set((s) => ({ perSong: { ...s.perSong, [songId]: { ...s.perSong[songId], semitones: wrapSemitones(semitones) } } })),
@@ -40,7 +45,7 @@ export const useViewStore = create<ViewState>()(
       updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
       selectChord: (selectedChordId) => set({ selectedChordId }),
     }),
-    { name: 'piano-chords:view', storage: settingsStorage, partialize: (s) => ({ profile: s.profile, perSong: s.perSong, volume: s.volume }) },
+    { name: 'piano-chords:view', storage: settingsStorage, partialize: (s) => ({ profile: s.profile, perSong: s.perSong, volume: s.volume, playMode: s.playMode }) },
   ),
 );
 

@@ -9,6 +9,7 @@
   --right: #2B8A3E; --right-soft: rgba(43,138,62,.12); --wrong: #C92A2A; --wrong-soft: rgba(201,42,42,.10);
   --bar: #1E2227; --bar-ink: #EEF0F2; --bar-muted: #A9B0B8;
   --ivory: #FFFFFF; --ebony: #1E2126; --key-line: rgba(0,0,0,.25);
+  --hand-left: #0C8599;
   --font-ui: 'Instrument Sans', system-ui, -apple-system, sans-serif;
   --font-chord: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
   background: var(--paper); color: var(--ink);
@@ -25,6 +26,7 @@
     --right: #69DB7C; --right-soft: rgba(105,219,124,.14); --wrong: #FF8787; --wrong-soft: rgba(255,135,135,.12);
     --bar: #0F1216; --bar-ink: #E6E8EB; --bar-muted: #8E969F;
     --ivory: #E9EAE6; --ebony: #0E1013; --key-line: rgba(0,0,0,.55);
+    --hand-left: #3BC9DB;
   }
 }
 .pc *, .pc *::before, .pc *::after { box-sizing: border-box; }
