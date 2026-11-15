@@ -2,7 +2,7 @@
 // Components use these instead of reading raw playback time.
 import { useMemo } from 'react';
 import { displayChord, simplifyChord, transposeChord, transposeKey, type Chord, type DisplaySettings } from '../../domain/music';
-import { displayRange, handRanges, melodyNotes } from '../../domain/melody';
+import { displayRange, handRanges, melodyNotes, rankMelodyKeys } from '../../domain/melody';
 import type { NoteEvent, Song } from '../../domain/song';
 import { activeChordIndex } from '../../domain/timing';
 import { voicers, type KeyRange, type Voicing } from '../../domain/voicing';
@@ -48,20 +48,30 @@ export function useVoicings(): Voicing[] {
 
 export type FallingNote = NoteEvent & { hand: 'left' | 'right' };
 
-/** What falls in Melody / Both mode, in the key and difficulty you're viewing, and the keyboard to draw it on.
-Null while the server is still finding the melody. Both: chords in the bottom octave, the tune above. */
-export function useFallingNotes(): { notes: FallingNote[]; range: KeyRange } | null {
+/** What falls in Melody / Both mode, at the melody level and key you're viewing, and the keyboard to draw it on.
+Null while the server is still finding the melody. Both: chords in the bottom octave, the tune above.
+`easiest`: the transpose that puts the fewest tune notes on black keys, and how many land there now and then. */
+export function useFallingNotes(): {
+  notes: FallingNote[];
+  range: KeyRange;
+  blackKeyNotes: number;
+  easiest: { semitones: number; blackKeyNotes: number };
+} | null {
   const song = useSong();
   const { semitones } = useSongView(song.id);
   const { played } = useDisplay();
-  const { difficulty, voicing, keyRange } = useViewStore((s) => s.profile);
+  const { voicing, keyRange } = useViewStore((s) => s.profile);
+  const level = useViewStore((s) => s.melodyLevel);
   const both = useViewStore((s) => s.playMode === 'both');
   return useMemo(() => {
     if (!song.melody) return null;
-    const easy = difficulty === 'easy';
     const hands = both ? handRanges(keyRange) : null;
-    const fitTo = hands ? hands.right : easy ? keyRange : null;
-    const notes: FallingNote[] = melodyNotes(song.melody, { semitones, easy, fitTo }).map((n) => ({ ...n, hand: 'right' }));
+    const fitTo = hands ? hands.right : level === 'full' ? null : keyRange;
+    const view = { level, fitTo, beats: song.beats };
+    const tune = melodyNotes(song.melody, { ...view, semitones });
+    // ponytail: ranks the tune only; in Both the left-hand chords can still need black keys (the key menu ranks those)
+    const ranked = rankMelodyKeys(melodyNotes(song.melody, { ...view, semitones: 0, fitTo: null }));
+    const notes: FallingNote[] = tune.map((n) => ({ ...n, hand: 'right' }));
     if (hands) {
       let previous: Voicing | null = null;
       for (const event of song.chords) {
@@ -70,8 +80,13 @@ export function useFallingNotes(): { notes: FallingNote[]; range: KeyRange } | n
         for (const midi of v) notes.push({ start: event.start, end: event.end, midi, hand: 'left' });
       }
     }
-    return { notes, range: displayRange(notes.map((n) => n.midi), keyRange) };
-  }, [song.melody, song.chords, semitones, played, difficulty, voicing, keyRange, both]);
+    return {
+      notes,
+      range: displayRange(notes.map((n) => n.midi), keyRange),
+      blackKeyNotes: ranked.find((r) => r.semitones === semitones)?.blackKeyNotes ?? 0,
+      easiest: ranked[0],
+    };
+  }, [song.melody, song.chords, song.beats, semitones, played, level, voicing, keyRange, both]);
 }
 
 export function useActiveIndex(): number {

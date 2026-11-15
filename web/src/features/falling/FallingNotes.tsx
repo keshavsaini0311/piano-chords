@@ -2,11 +2,13 @@
 // playbackStore.getState(), so React re-renders only when the notes or settings change, never per frame.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { keyLayout, type KeyBox } from '../../domain/keyboard';
-import { accidentalsForKey, noteName, toPitchClass, type Accidentals } from '../../domain/music';
+import type { MelodyLevel } from '../../domain/melody';
+import { accidentalsForKey, noteName, toPitchClass, transposeKey, type Accidentals } from '../../domain/music';
 import { api } from '../../services/api';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
 import { useViewStore } from '../../state/viewStore';
+import { ChordName } from '../../ui/ChordName';
 import { useDisplay, useFallingNotes, useSong, type FallingNote } from '../studio/display';
 
 const LOOKAHEAD_SEC = 3; // how far ahead you can see; the notes fall slower at slower speeds by themselves
@@ -151,11 +153,23 @@ function useMelodyArrival(songId: string, missing: boolean): boolean {
   return timedOut;
 }
 
+// Easiest first, so a new song starts simple and you step up as the tune sinks in.
+const LEVELS: { id: MelodyLevel; label: string; title: string }[] = [
+  { id: 'hand', label: 'One position', title: 'One note per beat, all within 12 keys: your hand never moves' },
+  { id: 'beat', label: 'On the beat', title: 'One note per beat: the main note of each' },
+  { id: 'easy', label: 'Fewer notes', title: 'Quick notes left out, fitted to your keys' },
+  { id: 'full', label: 'As sung', title: 'Every note the singer sings' },
+];
+
+const percent = (part: number, whole: number) => `${whole ? Math.round((100 * part) / whole) : 0}%`;
+
 export function FallingNotes() {
   const song = useSong();
   const data = useFallingNotes();
   const both = useViewStore((s) => s.playMode === 'both');
-  const { difficulty, showNoteNames, keyRange } = useViewStore((s) => s.profile);
+  const { showNoteNames, keyRange } = useViewStore((s) => s.profile);
+  const melodyLevel = useViewStore((s) => s.melodyLevel);
+  const { setMelodyLevel, setSemitones } = useViewStore.getState();
   const { currentKey } = useDisplay();
   const timedOut = useMelodyArrival(song.id, song.melody === undefined);
   const box = useRef<HTMLDivElement>(null);
@@ -200,6 +214,7 @@ export function FallingNotes() {
   }, []);
 
   const noTune = song.melody?.length === 0;
+  const tuneCount = data?.notes.filter((n) => n.hand === 'right').length ?? 0;
   const message = timedOut
     ? { title: 'The melody is taking longer than usual.', body: 'Open the song again in a few minutes to check.' }
     : song.melody === undefined
@@ -217,7 +232,22 @@ export function FallingNotes() {
           )}
           <span><i className="falling-swatch hand-right" aria-hidden="true" />Right hand: {noTune ? 'no tune found' : 'tune'}</span>
         </span>
-        <span>{difficulty === 'easy' ? 'Easy: quick notes left out, fitted to your keys' : 'Full: every note as sung'}</span>
+        {data && data.easiest.blackKeyNotes < data.blackKeyNotes && (
+          <button
+            className="btn falling-easier"
+            onClick={() => setSemitones(song.id, data.easiest.semitones)}
+            title="Moves the notes, not the recording. If it then sounds off, use your keyboard's transpose."
+          >
+            Easier in <ChordName label={transposeKey(song.originalKey, data.easiest.semitones)} />: {percent(data.easiest.blackKeyNotes, tuneCount)} black keys, now {percent(data.blackKeyNotes, tuneCount)}
+          </button>
+        )}
+        <div className="seg" role="group" aria-label="How simple the tune is">
+          {LEVELS.map((l) => (
+            <button key={l.id} aria-pressed={melodyLevel === l.id} title={l.title} onClick={() => setMelodyLevel(l.id)}>
+              {l.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="falling" ref={box}>
         <canvas ref={canvas} role="img" aria-label={`Notes falling onto your keyboard${both ? ', both hands' : ''}`} />
