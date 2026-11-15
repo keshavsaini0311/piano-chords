@@ -20,7 +20,8 @@ token in both blocks. No raw hex in `app.css`.**
 | `--unsure` | needs a look: low-confidence chords, Late grade, "learning" | warnings, not errors |
 | `--right` / `--wrong` (+ `-soft`) | grades from the mic: hit / miss | verdicts, mastery, scores |
 | `--bar`, `--bar-ink`, `--bar-muted` | the always-dark player bar | `.bar` only |
-| `--ivory`, `--ebony`, `--key-line` | piano keys | `ui/Keyboard` |
+| `--ivory`, `--ebony`, `--key-line` | piano keys | `ui/Keyboard`, falling notes |
+| `--hand-left` | the left hand in Both mode (teal, so it never reads as `--edit` violet) | falling notes, its legend swatch |
 | `--font-ui` / `--font-chord` | Instrument Sans / Bricolage Grotesque | UI text / chord symbols (`.chord-name`) |
 
 Rules:
@@ -60,6 +61,7 @@ Rules:
 
 - **Studio:** sticky top (`.studio-top`: header, timeline, edit bar, optional practice strip) ·
   scrolling chart (`.studio-main`) · sticky dark player bar (`.player-bar`).
+  In Melody / Both mode the falling-notes stage replaces the chart and the studio is one screen tall, so the keys sit just above the player bar (on phones the page scrolls instead).
   New per-song controls go in the **header** if they're modes (Check my playing), in the
   **player bar** if they're about audio (speed, volume, mix), in the **practice strip** if they
   only matter while practising.
@@ -71,7 +73,7 @@ Rules:
 
 - **Keyboard first.** Every frequent action has a single-key shortcut, registered in
   `features/studio/useShortcuts.ts` (ignored while typing) and shown in the control's `title`,
-  e.g. `title="Wait for me (W)"`. Taken: Space, ← →, [ ], L, M, Esc, J K, ⌘Z / ⇧⌘Z.
+  e.g. `title="Wait for me (W)"`. Taken: Space, ← →, [ ], L, M, N (Chords / Melody / Both), Esc, J K, ⌘Z / ⇧⌘Z.
   Reserved by the roadmap: W (wait for me), S (loop this section).
 - **State is shown, not hidden:** toggles use `aria-pressed`; anything live (verdicts, waiting)
   sits in an `aria-live="polite"` element.
