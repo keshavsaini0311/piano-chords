@@ -352,3 +352,26 @@ li[data-status="failed"] .progress-mark { background: var(--now); color: var(--o
 .mastery-songs { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .mastery-songs button { text-decoration: underline; }
 .song-badge { color: var(--right); font-size: 12px; font-weight: 600; }
+
+/* Falling notes (Melody / Both mode) */
+.studio:has(.falling-wrap) { height: 100dvh; } /* one screen: the keys always sit just above the player bar */
+.studio:has(.falling-wrap) .studio-body { min-height: 0; flex-wrap: nowrap; align-items: stretch; }
+.studio:has(.falling-wrap) .studio-main { min-height: 0; display: flex; flex-direction: column; padding-top: 12px; padding-bottom: 12px; }
+.falling-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.falling-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; color: var(--muted); }
+.falling-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.falling-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.falling-swatch.hand-left { background: var(--hand-left); }
+.falling-swatch.hand-right { background: var(--next); }
+.falling { position: relative; flex: 1; min-height: 280px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.falling canvas { position: absolute; inset: 0; width: 100%; height: 100%; } /* out of flow: the canvas's pixel size must never size the stage */
+.falling-empty { position: absolute; inset: 0 0 auto 0; height: 72%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 16px; text-align: center; }
+.falling-empty strong { font-size: 17px; font-weight: 600; }
+.finding-dot { width: 8px; height: 8px; margin-bottom: 8px; border-radius: 50%; background: var(--next); animation: finding 1.2s ease-in-out infinite; }
+@keyframes finding { 50% { opacity: .25; transform: scale(.7); } }
+@media (prefers-reduced-motion: reduce) { .finding-dot { animation: none; } }
+@media (max-width: 860px) { /* the top and player bar wrap tall on phones: scroll the page, give the stage most of a screen */
+  .studio:has(.falling-wrap) { height: auto; }
+  .studio:has(.falling-wrap) .studio-top { position: static; } /* pinned, it would cover most of the stage */
+  .falling { flex: none; height: 72svh; }
+}

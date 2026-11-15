@@ -7,6 +7,7 @@ import { accidentalsForKey, chordPitchClasses, formatChord, noteName, type Chord
 import { nextGateAt, waitAction } from '../../domain/timing';
 import { beatSeconds, createRunTracker, judgementFor, summarize, type Attempt } from '../../domain/score';
 import { openMic } from '../../services/mic';
+import { useViewStore } from '../../state/viewStore';
 import { useJudgeStore } from '../../state/judgeStore';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { resumeFromWait } from '../player/PlayerBar';
@@ -27,8 +28,10 @@ export function PracticeToggle() {
   const { listening, toggle } = useJudgeStore();
   const songId = useSong().id;
   const best = bestScore(usePracticeStore((s) => s.runs[songId]));
+  const melodyOnly = useViewStore((s) => s.playMode === 'melody');
+  const title = melodyOnly ? 'Checks chords: switch to Chords or Both to use it' : 'Listens through your mic, tells you if you hit each chord and scores your run (M)';
   return (
-    <button className="btn practice-toggle" aria-pressed={listening} onClick={toggle} title="Listens through your mic, tells you if you hit each chord and scores your run (M)">
+    <button className="btn practice-toggle" aria-pressed={listening} onClick={toggle} disabled={melodyOnly} title={title}>
       <MicIcon />
       {listening ? 'Checking…' : 'Check my playing'}
       {best !== null && <span className="practice-best">Best {best}</span>}

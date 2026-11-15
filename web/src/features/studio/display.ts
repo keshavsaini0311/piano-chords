@@ -2,9 +2,10 @@
 // Components use these instead of reading raw playback time.
 import { useMemo } from 'react';
 import { displayChord, simplifyChord, transposeChord, transposeKey, type Chord, type DisplaySettings } from '../../domain/music';
-import type { Song } from '../../domain/song';
+import { displayRange, handRanges, melodyNotes } from '../../domain/melody';
+import type { NoteEvent, Song } from '../../domain/song';
 import { activeChordIndex } from '../../domain/timing';
-import { voicers, type Voicing } from '../../domain/voicing';
+import { voicers, type KeyRange, type Voicing } from '../../domain/voicing';
 import { usePlaybackStore } from '../../state/playbackStore';
 import { useSongStore } from '../../state/songStore';
 import { useSongView, useViewStore } from '../../state/viewStore';
@@ -43,6 +44,34 @@ export function useVoicings(): Voicing[] {
     }
     return out;
   }, [chords, played, voicing, keyRange]);
+}
+
+export type FallingNote = NoteEvent & { hand: 'left' | 'right' };
+
+/** What falls in Melody / Both mode, in the key and difficulty you're viewing, and the keyboard to draw it on.
+Null while the server is still finding the melody. Both: chords in the bottom octave, the tune above. */
+export function useFallingNotes(): { notes: FallingNote[]; range: KeyRange } | null {
+  const song = useSong();
+  const { semitones } = useSongView(song.id);
+  const { played } = useDisplay();
+  const { difficulty, voicing, keyRange } = useViewStore((s) => s.profile);
+  const both = useViewStore((s) => s.playMode === 'both');
+  return useMemo(() => {
+    if (!song.melody) return null;
+    const easy = difficulty === 'easy';
+    const hands = both ? handRanges(keyRange) : null;
+    const fitTo = hands ? hands.right : easy ? keyRange : null;
+    const notes: FallingNote[] = melodyNotes(song.melody, { semitones, easy, fitTo }).map((n) => ({ ...n, hand: 'right' }));
+    if (hands) {
+      let previous: Voicing | null = null;
+      for (const event of song.chords) {
+        const v = voicers[voicing](played(event.chord), previous, hands.left);
+        if (v.length) previous = v;
+        for (const midi of v) notes.push({ start: event.start, end: event.end, midi, hand: 'left' });
+      }
+    }
+    return { notes, range: displayRange(notes.map((n) => n.midi), keyRange) };
+  }, [song.melody, song.chords, semitones, played, difficulty, voicing, keyRange, both]);
 }
 
 export function useActiveIndex(): number {

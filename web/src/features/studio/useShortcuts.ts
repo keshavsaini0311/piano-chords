@@ -10,6 +10,7 @@ import { useViewStore } from '../../state/viewStore';
 import { stepReview } from '../editor/EditBar';
 import { isTypingTarget } from './shortcutTarget';
 import { loopSection, toggleLoop, togglePlay } from '../player/PlayerBar';
+import { cyclePlayMode } from '../falling/PlayModeSwitch';
 
 export function useShortcuts() {
   useEffect(() => {
@@ -41,7 +42,8 @@ export function useShortcuts() {
           const section = sectionAt(findSections(song), time);
           if (section) loopSection(section);
         },
-        m: () => useJudgeStore.getState().toggle(),
+        m: () => view.playMode !== 'melody' && useJudgeStore.getState().toggle(),
+        n: cyclePlayMode,
         w: () => useJudgeStore.getState().toggleWait(),
         Escape: () => view.selectChord(null),
         j: () => stepReview(song, 1),
