@@ -375,3 +375,5 @@ li[data-status="failed"] .progress-mark { background: var(--now); color: var(--o
   .studio:has(.falling-wrap) .studio-top { position: static; } /* pinned, it would cover most of the stage */
   .falling { flex: none; height: 72svh; }
 }
+.falling-caption { align-items: center; }
+.falling-easier { min-height: 34px; font-size: 13px; }

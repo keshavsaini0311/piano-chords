@@ -8,7 +8,7 @@ Overnight plans (local, git-ignored; start with the runbook): `docs/superpowers/
 3. ✅ done on overnight/roadmap — **Chord mastery** · plan: "Your chords" on the library (level per chord from your scores), songs you can play now, the chord to learn next.
 4. ✅ done on overnight/roadmap — **Stems** · plan: Demucs splits each song after import into Backing track, No vocals and Vocals only mixes; a Mix button switches between them.
 5. ✅ done on overnight/roadmap — **Word-level lyric timing** · plan: the MMS aligner times each word, so chords sit on the sung word.
-6. ✅ done on feat/melody — **Melody** · falling notes (Synthesia style) for the tune, found from the vocals mix when a song is first opened; Chords / Melody / Both modes, easy melody fitted to the SA-51's keys. Next: mic checking for single notes, a MIDI file to fix a wrong melody, then hand-fixing notes.
+6. ✅ done on feat/melody — **Melody** · falling notes (Synthesia style) for the tune, found from the vocals mix when a song is first opened; Chords / Melody / Both modes, easy melody fitted to the SA-51's keys. Simpler melodies (feat/simple-melody): One position · On the beat · Fewer notes · As sung, and an "Easier in …" key button ranked by black keys in the tune. Next: mic checking for single notes, a MIDI file to fix a wrong melody, then hand-fixing notes.
 
 ## Parked
 

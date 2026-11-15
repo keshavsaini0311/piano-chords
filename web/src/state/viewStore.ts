@@ -2,6 +2,7 @@
 // Persisted to settings.json in the server's data folder (see settingsStorage.ts).
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { MelodyLevel } from '../domain/melody';
 import type { MixId } from '../domain/mix';
 import { defaultProfile, type Profile } from '../domain/profile';
 import { serverSettingsStorage } from './settingsStorage';
@@ -16,7 +17,9 @@ type ViewState = {
   selectedChordId: string | null;
   volume: number; // 0..1
   playMode: PlayMode;
+  melodyLevel: MelodyLevel; // how simple the falling tune is, separate from chord detail
   setPlayMode: (playMode: PlayMode) => void;
+  setMelodyLevel: (melodyLevel: MelodyLevel) => void;
   setVolume: (volume: number) => void;
   setSemitones: (songId: string, semitones: number) => void;
   setMix: (songId: string, mix: MixId) => void;
@@ -36,7 +39,9 @@ export const useViewStore = create<ViewState>()(
       selectedChordId: null,
       volume: 1,
       playMode: 'chords',
+      melodyLevel: 'beat',
       setPlayMode: (playMode) => set({ playMode }),
+      setMelodyLevel: (melodyLevel) => set({ melodyLevel }),
       setVolume: (volume) => set({ volume: Math.min(1, Math.max(0, volume)) }),
       setSemitones: (songId, semitones) =>
         set((s) => ({ perSong: { ...s.perSong, [songId]: { ...s.perSong[songId], semitones: wrapSemitones(semitones) } } })),
@@ -45,7 +50,7 @@ export const useViewStore = create<ViewState>()(
       updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
       selectChord: (selectedChordId) => set({ selectedChordId }),
     }),
-    { name: 'piano-chords:view', storage: settingsStorage, partialize: (s) => ({ profile: s.profile, perSong: s.perSong, volume: s.volume, playMode: s.playMode }) },
+    { name: 'piano-chords:view', storage: settingsStorage, partialize: (s) => ({ profile: s.profile, perSong: s.perSong, volume: s.volume, playMode: s.playMode, melodyLevel: s.melodyLevel }) },
   ),
 );
 
