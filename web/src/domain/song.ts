@@ -11,6 +11,7 @@ export type ChordEvent = {
   alternatives?: Chord[]; // detector's runner-up guesses
 };
 
+export type NoteEvent = { start: number; end: number; midi: number }; // one melody note, seconds + MIDI pitch
 export type WordTime = { index: number; start: number; end: number }; // index into text.split()
 export type LyricLine = { id: string; start: number; end: number; text: string; words?: WordTime[] };
 
@@ -25,6 +26,7 @@ export type Song = {
   lyrics: LyricLine[]; // may be empty
   anchors: Record<string, { lineId: string; charIndex: number }>; // manual chord placement over lyrics
   mixes?: Exclude<MixId, 'full'>[]; // stem mixes the server has made for this song
+  melody?: NoteEvent[]; // the tune, found by the server when the song is first opened; [] = none found
 };
 
 export const MIN_CHORD_SEC = 0.1;

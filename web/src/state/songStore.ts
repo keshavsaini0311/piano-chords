@@ -17,6 +17,9 @@ type SongState = {
   apply: (edit: (song: Song) => Song) => void;
   undo: () => void;
   redo: () => void;
+  /** Fields only the server writes (melody), arriving after load: patched into the song and its whole
+  history, so undo can't drop them, and not counted as an edit, so nothing autosaves. */
+  mergeServer: (patch: Pick<Partial<Song>, 'melody'>) => void;
 };
 
 export const useSongStore = create<SongState>((set, get) => ({
@@ -42,6 +45,12 @@ export const useSongStore = create<SongState>((set, get) => ({
     const { song, past, future, revision } = get();
     if (!song || !future.length) return;
     set({ song: future[0], past: [...past, song], future: future.slice(1), revision: revision + 1 });
+  },
+  mergeServer: (patch) => {
+    const { song, past, future } = get();
+    if (!song) return;
+    const merge = (s: Song) => ({ ...s, ...patch });
+    set({ song: merge(song), past: past.map(merge), future: future.map(merge) });
   },
 }));
 

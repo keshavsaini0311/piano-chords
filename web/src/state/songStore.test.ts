@@ -35,6 +35,18 @@ describe('song store history', () => {
     expect(store().past.length).toBe(HISTORY_LIMIT);
   });
 
+  it('server fields arriving later reach the whole history without counting as an edit', () => {
+    store().apply((s) => setChord(s, 'c0', parseChord('G')));
+    const revision = store().revision;
+    const melody = [{ start: 0, end: 1, midi: 60 }];
+    store().mergeServer({ melody });
+    expect(store().song?.melody).toEqual(melody);
+    expect(store().revision).toBe(revision);
+    store().undo();
+    expect(store().song?.melody).toEqual(melody);
+    expect(store().song?.chords[0].chord).toEqual(parseChord('C'));
+  });
+
   it('ignores edits that change nothing', () => {
     store().apply((s) => s);
     expect(store().past).toEqual([]);
